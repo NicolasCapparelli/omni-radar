@@ -41,6 +41,8 @@ class AircraftPayload(BaseModel):
     )
     heading_degrees: int = Field(default=0,
                                  description="True ground-track heading, 0-359 degrees.")
+    latitude: float | None = Field(default=None, description="WGS-84 latitude (degrees).")
+    longitude: float | None = Field(default=None, description="WGS-84 longitude (degrees).")
     squawk: str = Field(default="", description="Transponder squawk code.")
     emergency: str = Field(
         default="None",

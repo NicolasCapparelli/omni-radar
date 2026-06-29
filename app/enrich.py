@@ -165,6 +165,8 @@ def _build_payload(
         speed_knots=vector.speed_knots,
         vertical_speed_fpm=vector.vertical_rate_fpm,
         heading_degrees=vector.heading_deg,
+        latitude=vector.latitude,
+        longitude=vector.longitude,
         squawk=vector.squawk or "",
         emergency=vector.emergency,
         on_ground=vector.on_ground,

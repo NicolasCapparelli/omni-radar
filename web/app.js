@@ -6,7 +6,9 @@ const state = {
   selected: -1,
   mode: "AIR",          // AIR | MARINE
   trackMode: "auto",    // auto | manual
+  view: "data",         // data | radar
   powered: true,
+  user: { lat: 40.7580, lon: -73.9965, radius: 15 },
   scrollTimer: null,
   liveTimer: null,
 };
@@ -47,6 +49,13 @@ async function scan() {
   const radius = $("inRadius").value.trim();
   const qs = `lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&radius=${encodeURIComponent(radius)}`;
   $("requestUrl").textContent = `GET /api/nearby?${qs}`;
+
+  // Capture the user's position/radius for the radar view (fall back to NYC).
+  state.user = {
+    lat: parseFloat(lat) || 40.7580,
+    lon: parseFloat(lon) || -73.9965,
+    radius: parseFloat(radius) || 15,
+  };
 
   setConn("busy", "Scanning…");
   try {
@@ -140,28 +149,35 @@ function highlightRow() {
     tr.classList.toggle("selected", Number(tr.dataset.i) === state.selected));
 }
 
-// ── Selection + device LCD ─────────────────────────────────────────────────
+// ── Selection + device views ───────────────────────────────────────────────
 function select(i) {
   state.selected = i;
   highlightRow();
-  renderLCD();
+  renderCard();
+  renderRadar();
+  updateView();
   $("rawJson").textContent =
     i >= 0 ? JSON.stringify(state.aircraft[i], null, 2) : "// select an aircraft";
 }
 
-function renderLCD() {
-  const card = $("lcdCard");
-  const empty = $("lcdEmpty");
+// Decide which of the three body views is visible.
+function updateView() {
   const a = state.aircraft[state.selected];
-
+  const empty = $("lcdEmpty"), card = $("lcdCard"), radar = $("lcdRadar");
   if (!a) {
-    card.hidden = true;
-    empty.hidden = false;
+    empty.hidden = false; card.hidden = true; radar.hidden = true;
     $("lcdIndex").textContent = "0 / 0 TRACKED";
     return;
   }
   empty.hidden = true;
-  card.hidden = false;
+  const radarActive = state.view === "radar" && state.mode === "AIR";
+  radar.hidden = !radarActive;
+  card.hidden = radarActive;
+}
+
+function renderCard() {
+  const a = state.aircraft[state.selected];
+  if (!a) return;
 
   $("lcdCallsign").textContent = a.callsign || "--------";
   $("lcdOrigin").textContent = a.origin || "N/A";
@@ -181,7 +197,6 @@ function renderLCD() {
   vspdEl.textContent = vs.text;
   vspdEl.className = "lcd-vspd " + vs.cls;
 
-  // Badges: operator class + special designation.
   const badges = [];
   if (a.operator_class && a.operator_class !== "Unknown")
     badges.push(`<span class="chip ${classChip(a.operator_class)}">${escapeHtml(a.operator_class)}</span>`);
@@ -195,6 +210,49 @@ function renderLCD() {
   $("lcd").classList.toggle("alert", emergency);
 
   $("lcdIndex").textContent = `${state.selected + 1} / ${state.aircraft.length} TRACKED`;
+}
+
+// Relative bearing + distance (miles) from the user to the aircraft.
+function relativePosition(user, a) {
+  const milesPerLat = 69.0;
+  const milesPerLon = 69.0 * Math.cos((user.lat * Math.PI) / 180);
+  const dNorth = (a.latitude - user.lat) * milesPerLat;
+  const dEast = (a.longitude - user.lon) * milesPerLon;
+  const dist = Math.hypot(dNorth, dEast);
+  const bearing = Math.atan2(dEast, dNorth); // radians, clockwise from north
+  return { dist, bearing };
+}
+
+const RADAR_R = 84; // px (scope is 168px diameter)
+
+function renderRadar() {
+  const a = state.aircraft[state.selected];
+  const planeEl = $("radarPlane"), infoEl = $("radarPlaneInfo");
+  $("radarRange").textContent = `${state.user.radius} mi`;
+
+  if (!a || a.latitude == null || a.longitude == null) {
+    planeEl.hidden = true; infoEl.hidden = true;
+    return;
+  }
+  const { dist, bearing } = relativePosition(state.user, a);
+  const r = Math.min(dist / state.user.radius, 1) * RADAR_R;
+  const x = RADAR_R + r * Math.sin(bearing);
+  const y = RADAR_R - r * Math.cos(bearing);
+
+  planeEl.hidden = false;
+  planeEl.style.left = `${x}px`;
+  planeEl.style.top = `${y}px`;
+  $("radarPlaneIcon").textContent = iconFor(a.vehicle_type);
+  $("radarPlaneIcon").style.transform = `rotate(${a.heading_degrees || 0}deg)`;
+
+  infoEl.hidden = false;
+  infoEl.innerHTML =
+    `<b>${escapeHtml(a.callsign)}</b><br>${commas(a.altitude_feet)} ft<br>${dist.toFixed(1)} mi`;
+  const onLeft = x > RADAR_R;
+  infoEl.style.left = `${onLeft ? x - 12 : x + 12}px`;
+  infoEl.style.top = `${Math.min(Math.max(y - 4, -10), 140)}px`;
+  infoEl.style.transform = onLeft ? "translateX(-100%)" : "none";
+  infoEl.style.textAlign = onLeft ? "right" : "left";
 }
 
 // ── Auto-scroll (mirrors the hardware's Auto-Cycle mode) ────────────────────
@@ -240,6 +298,29 @@ function setupButtons() {
     state.mode = state.mode === "AIR" ? "MARINE" : "AIR";
     $("modePill").textContent = state.mode;
     $("lcdModeIcon").textContent = state.mode === "AIR" ? "flight" : "sailing";
+    // Radar is AIR-only; drop back to the data view when leaving AIR.
+    if (state.mode !== "AIR" && state.view === "radar") {
+      state.view = "data";
+      $("btnAlt").classList.remove("active");
+    }
+    updateView();
+  });
+
+  $("btnAlt").addEventListener("click", () => {
+    if (!state.powered) return;
+    if (state.mode !== "AIR") {
+      $("actionHint").textContent = "Radar view is available in AIR mode only.";
+      return;
+    }
+    state.view = state.view === "radar" ? "data" : "radar";
+    $("btnAlt").classList.toggle("active", state.view === "radar");
+    $("actionHint").textContent = state.view === "radar"
+      ? "Radar: target position relative to you (North up)."
+      : (state.trackMode === "auto"
+          ? "Auto-Scroll: cycling every 5s. Press ACTION to lock."
+          : "Manual-Lock: press ACTION to step to the next target.");
+    renderRadar();
+    updateView();
   });
 
   $("btnAction").addEventListener("click", () => {

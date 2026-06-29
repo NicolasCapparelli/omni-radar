@@ -34,6 +34,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
   background: var(--bg);
@@ -156,6 +157,28 @@ body {
 
 .lcd-off { position: absolute; inset: 0; background: #050505; }
 .lcd.alert { border-color: var(--error); box-shadow: inset 0 0 12px rgba(0,0,0,.85), 0 0 0 2px var(--error); }
+
+/* ── Radar view ── */
+.lcd-radar { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.radar-scope { position: relative; width: 168px; height: 168px; }
+.radar-ring { position: absolute; border-radius: 50%; border: 1px solid var(--lcd-line); }
+.radar-ring.outer { inset: 0; border-color: rgba(74,222,128,.4); }
+.radar-ring.mid { inset: 25%; }
+.radar-cross { position: absolute; background: var(--lcd-line); }
+.radar-cross.h { left: 0; right: 0; top: 50%; height: 1px; }
+.radar-cross.v { top: 0; bottom: 0; left: 50%; width: 1px; }
+.radar-lbl { position: absolute; color: var(--lcd-dim); font-size: 9px; font-weight: 700; transform: translate(-50%, -50%); }
+.radar-lbl.rn { left: 50%; top: -2px; color: var(--lcd-green); }
+.radar-lbl.rs { left: 50%; top: calc(100% + 2px); }
+.radar-lbl.re { left: calc(100% + 4px); top: 50%; }
+.radar-lbl.rw { left: -4px; top: 50%; }
+.radar-range { position: absolute; right: 2px; bottom: -2px; transform: translateY(100%); color: var(--lcd-dim); font-size: 8px; }
+.radar-user { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #fff; }
+.radar-user .material-symbols-outlined { font-size: 18px; }
+.radar-plane { position: absolute; transform: translate(-50%, -50%); }
+.radar-plane .plane-glyph { font-size: 16px; color: var(--lcd-green); text-shadow: 0 0 6px rgba(74,222,128,.6); display: block; }
+.radar-plane-info { position: absolute; color: #fff; font-size: 8px; line-height: 1.15; white-space: nowrap; text-shadow: 0 0 3px #000; pointer-events: none; }
+.radar-plane-info b { color: var(--lcd-green); font-weight: 700; }
 
 /* ── Hardware buttons ── */
 .buttons { display: flex; gap: 18px; }

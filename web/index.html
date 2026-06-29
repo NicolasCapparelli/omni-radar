@@ -49,6 +49,25 @@
             <div class="lcd-body" id="lcdBody">
               <div class="lcd-empty" id="lcdEmpty">NO SIGNAL<br /><small>Scan to acquire targets</small></div>
 
+              <div class="lcd-radar" id="lcdRadar" hidden>
+                <div class="radar-scope">
+                  <div class="radar-ring outer"></div>
+                  <div class="radar-ring mid"></div>
+                  <div class="radar-cross h"></div>
+                  <div class="radar-cross v"></div>
+                  <span class="radar-lbl rn">N</span>
+                  <span class="radar-lbl re">E</span>
+                  <span class="radar-lbl rs">S</span>
+                  <span class="radar-lbl rw">W</span>
+                  <span class="radar-range" id="radarRange">15 mi</span>
+                  <div class="radar-user"><span class="material-symbols-outlined">person_pin_circle</span></div>
+                  <div class="radar-plane" id="radarPlane" hidden>
+                    <span class="material-symbols-outlined plane-glyph" id="radarPlaneIcon">flight</span>
+                  </div>
+                  <div class="radar-plane-info" id="radarPlaneInfo" hidden></div>
+                </div>
+              </div>
+
               <div class="lcd-card" id="lcdCard" hidden>
                 <div class="lcd-emergency" id="lcdEmergency" hidden>⚠ EMERGENCY</div>
                 <div class="lcd-callsign" id="lcdCallsign">--------</div>
@@ -101,6 +120,9 @@
           </button>
           <button class="hw-btn" id="btnAction">
             <span>ACTION</span><small>scroll / lock + step</small>
+          </button>
+          <button class="hw-btn" id="btnAlt">
+            <span>ALT</span><small>radar view (AIR)</small>
           </button>
         </div>
         <p class="hint" id="actionHint">Auto-Scroll: cycling every 5s. Press ACTION to lock.</p>
