@@ -9,8 +9,9 @@ const state = {
   view: "data",         // data | radar
   powered: true,
   user: { lat: 40.7580, lon: -73.9965, radius: 15 },
+  recommendedPoll: 30,
   scrollTimer: null,
-  liveTimer: null,
+  liveTimeout: null,
 };
 
 const SCROLL_MS = 5000;
@@ -65,6 +66,8 @@ async function scan() {
       throw new Error(`HTTP ${resp.status}: ${body.slice(0, 200)}`);
     }
     const data = await resp.json();
+    const rec = resp.headers.get("X-Recommended-Poll-Seconds");
+    if (rec) state.recommendedPoll = parseInt(rec) || state.recommendedPoll;
     state.aircraft = Array.isArray(data) ? data : [];
     renderTable();
     $("statTracked").textContent = state.aircraft.length;
@@ -348,20 +351,39 @@ function escapeHtml(s) {
 }
 
 function setupLive() {
-  $("liveToggle").addEventListener("change", (e) => {
-    if (e.target.checked) {
-      state.liveTimer = setInterval(scan, LIVE_MS);
-    } else if (state.liveTimer) {
-      clearInterval(state.liveTimer);
-      state.liveTimer = null;
+  $("liveToggle").addEventListener("change", () => {
+    if ($("liveToggle").checked) {
+      scan().then(scheduleLive);
+    } else {
+      clearTimeout(state.liveTimeout);
+      $("pollInfo").textContent = "";
     }
   });
+  $("pollInterval").addEventListener("change", () => {
+    if ($("liveToggle").checked) scheduleLive();
+  });
+}
+
+function effectivePoll() {
+  const manual = parseInt($("pollInterval").value) || 30;
+  return Math.max(5, manual, state.recommendedPoll || 0);
+}
+
+function scheduleLive() {
+  clearTimeout(state.liveTimeout);
+  if (!$("liveToggle").checked) return;
+  const eff = effectivePoll();
+  const manual = parseInt($("pollInterval").value) || 30;
+  $("pollInfo").textContent =
+    state.recommendedPoll > manual ? `backed off to ${eff}s (low credits)` : `every ${eff}s`;
+  state.liveTimeout = setTimeout(() => scan().then(scheduleLive), eff * 1000);
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
   setupButtons();
   setupLive();
+  setupUsage();
   setTrackMode("auto");
   $("btnScan").addEventListener("click", scan);
   document.querySelectorAll(".request-bar input").forEach((el) =>
@@ -369,3 +391,105 @@ window.addEventListener("DOMContentLoaded", () => {
   refreshHealth();
   scan();
 });
+
+// ── Usage view ─────────────────────────────────────────────────────────────
+const usage = { timer: null };
+
+function showView(which) {
+  const isUsage = which === "usage";
+  $("consoleView").hidden = isUsage;
+  $("usageView").hidden = !isUsage;
+  $("navConsole").classList.toggle("active", !isUsage);
+  $("navUsage").classList.toggle("active", isUsage);
+  if (isUsage) {
+    fetchMetrics();
+    if ($("usageLive").checked) startUsageTimer();
+  } else {
+    stopUsageTimer();
+  }
+}
+
+function startUsageTimer() {
+  stopUsageTimer();
+  usage.timer = setInterval(fetchMetrics, 5000);
+}
+function stopUsageTimer() {
+  if (usage.timer) { clearInterval(usage.timer); usage.timer = null; }
+}
+
+function fmtUptime(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return h ? `${h}h ${m}m` : m ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+async function fetchMetrics() {
+  try {
+    const m = await (await fetch("/api/metrics")).json();
+    renderMetrics(m);
+  } catch (err) {
+    console.error("metrics fetch failed", err);
+  }
+}
+
+function renderMetrics(m) {
+  const ext = m.external_calls, sv = m.savings;
+  $("usageUptime").textContent = `Uptime ${fmtUptime(m.uptime_seconds)} · ${commas(m.requests.nearby)} scans · ${commas(m.requests.aircraft_returned)} aircraft served`;
+
+  $("hExternal").textContent = commas(ext.total);
+  $("hAvoided").textContent = commas(sv.calls_avoided_total);
+  $("hAvoidedDetail").textContent = `${commas(sv.cache_hits)} cache · ${commas(sv.planes_filtered)} filtered`;
+  $("hRatio").textContent = `${Math.round(sv.local_served_ratio * 100)}%`;
+  $("hFa").textContent = commas(ext.flightaware.requests);
+
+  const prov = (name, p, key) => `
+    <tr><td class="prov">${name}</td>
+      <td class="num">${commas(p.requests)}</td>
+      <td class="num">${key ? commas(p.found) : "—"}</td>
+      <td class="num">${key ? commas(p.not_found) : "—"}</td>
+      <td class="num">${key ? commas(p.rate_limited) : "—"}</td>
+      <td class="num">${commas(p.errors)}</td></tr>`;
+  $("providerRows").innerHTML =
+    prov("OpenSky", ext.opensky, false) +
+    prov("adsbdb", ext.adsbdb, true) +
+    prov("FlightAware", ext.flightaware, true);
+  $("openskyNote").textContent =
+    `OpenSky is 1 call per scan (the bulk live feed); adsbdb & FlightAware are per-callsign route lookups. Cache entries: ${commas(m.cache_entries ?? 0)}.`;
+
+  const os = ext.opensky;
+  const credits = os.credits_remaining;
+  $("openskyCredits").textContent = credits == null
+    ? `OpenSky daily credits: not yet observed — run a scan. (429s so far: ${commas(os.rate_limited)})`
+    : `OpenSky daily credits remaining: ${commas(credits)} · rate-limited (429): ${commas(os.rate_limited)}`;
+  $("recPoll").textContent =
+    `Recommended poll interval: ${m.recommended_poll_seconds}s — data refreshes every ~5s; backs off automatically as credits run low.`;
+
+  const item = (icon, label, val) =>
+    `<li><span><span class="material-symbols-outlined">${icon}</span>${label}</span><b>${commas(val)}</b></li>`;
+  $("savingsList").innerHTML =
+    item("bolt", "Route cache hits (no call)", sv.cache_hits) +
+    item("filter_alt", "Grounded planes filtered", sv.planes_filtered) +
+    item("dns", "Offline aircraft-DB enrichments", sv.offline_db_enrichments) +
+    item("block", "Known no-route (negatively cached)", m.route_resolution.not_found);
+
+  // Bars: cache hits, filtered, provider route calls (cost).
+  const providerRouteCalls = ext.adsbdb.requests + ext.flightaware.requests;
+  const max = Math.max(sv.cache_hits, sv.planes_filtered, providerRouteCalls, 1);
+  $("barCache").style.width = `${(sv.cache_hits / max) * 100}%`;
+  $("barFiltered").style.width = `${(sv.planes_filtered / max) * 100}%`;
+  $("barCalls").style.width = `${(providerRouteCalls / max) * 100}%`;
+  $("numCache").textContent = commas(sv.cache_hits);
+  $("numFiltered").textContent = commas(sv.planes_filtered);
+  $("numCalls").textContent = commas(providerRouteCalls);
+}
+
+function setupUsage() {
+  $("navConsole").addEventListener("click", () => showView("console"));
+  $("navUsage").addEventListener("click", () => showView("usage"));
+  $("btnUsageRefresh").addEventListener("click", fetchMetrics);
+  $("usageLive").addEventListener("change", (e) =>
+    e.target.checked ? startUsageTimer() : stopUsageTimer());
+  $("btnUsageReset").addEventListener("click", async () => {
+    await fetch("/api/metrics/reset");
+    fetchMetrics();
+  });
+}

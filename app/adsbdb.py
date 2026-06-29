@@ -16,6 +16,7 @@ from typing import Optional
 import httpx
 
 from .cache import FlightMeta
+from .metrics import METRICS
 from .routes import RouteRateLimited, RouteUnavailable, Throttle
 from .static_data import airline_from_callsign
 
@@ -64,30 +65,40 @@ class AdsbdbClient:
         url = f"{self._base_url}/callsign/{ident}"
         try:
             async with self._throttle:
+                METRICS.incr("adsbdb.requests")
                 resp = await self._client.get(url)
         except httpx.HTTPError as exc:
+            METRICS.incr("adsbdb.errors")
             raise RouteUnavailable(f"adsbdb transport error: {exc}") from exc
 
         if resp.status_code == 429:
+            METRICS.incr("adsbdb.rate_limited")
             raise RouteRateLimited(f"adsbdb 429 for {ident}")
         if resp.status_code == 404:
+            METRICS.incr("adsbdb.notfound")
             return None  # unknown callsign -> definitively no route
         if resp.status_code >= 500:
+            METRICS.incr("adsbdb.errors")
             raise RouteUnavailable(f"adsbdb {resp.status_code} for {ident}")
         if resp.status_code != 200:
+            METRICS.incr("adsbdb.errors")
             raise RouteUnavailable(f"adsbdb {resp.status_code} for {ident}")
 
         response = resp.json().get("response")
         if not isinstance(response, dict):
+            METRICS.incr("adsbdb.notfound")
             return None
         flightroute = response.get("flightroute")
         if not flightroute:
+            METRICS.incr("adsbdb.notfound")
             return None
         origin = flightroute.get("origin")
         destination = flightroute.get("destination")
         if not origin or not destination:
+            METRICS.incr("adsbdb.notfound")
             return None
 
+        METRICS.incr("adsbdb.found")
         airline_node = flightroute.get("airline") or {}
         airline = (
             airline_from_callsign(callsign)

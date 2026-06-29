@@ -20,6 +20,7 @@ import logging
 from typing import Optional, Protocol, Sequence
 
 from .cache import FlightMeta
+from .metrics import METRICS
 
 logger = logging.getLogger("traffic_radar.routes")
 
@@ -92,5 +93,10 @@ async def resolve_route(
             logger.debug("%s unavailable for %s: %s", provider.name, callsign, exc)
             continue
         if meta is not None:
+            METRICS.incr("routes.resolved_found")
             return meta, "found"
-    return (None, "unavailable") if transient else (None, "notfound")
+    if transient:
+        METRICS.incr("routes.resolved_unavailable")
+        return None, "unavailable"
+    METRICS.incr("routes.resolved_notfound")
+    return None, "notfound"

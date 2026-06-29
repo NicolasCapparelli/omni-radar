@@ -17,6 +17,7 @@ from typing import Optional
 import httpx
 
 from .cache import FlightMeta
+from .metrics import METRICS
 from .routes import RouteRateLimited, RouteUnavailable, Throttle
 from .static_data import airline_from_callsign, airline_from_icao
 
@@ -81,28 +82,37 @@ class FlightAwareClient:
         url = f"{self._base_url}/flights/{ident}"
         try:
             async with self._throttle:
+                METRICS.incr("flightaware.requests")
                 resp = await self._client.get(url)
         except httpx.HTTPError as exc:
+            METRICS.incr("flightaware.errors")
             raise RouteUnavailable(f"AeroAPI transport error: {exc}") from exc
 
         if resp.status_code == 429:
+            METRICS.incr("flightaware.rate_limited")
             raise RouteRateLimited(f"AeroAPI 429 for {ident}")
         if resp.status_code >= 500:
+            METRICS.incr("flightaware.errors")
             raise RouteUnavailable(f"AeroAPI {resp.status_code} for {ident}")
         if resp.status_code == 404:
+            METRICS.incr("flightaware.notfound")
             return None  # no flight record -> no route
         if resp.status_code != 200:
+            METRICS.incr("flightaware.errors")
             raise RouteUnavailable(f"AeroAPI {resp.status_code} for {ident}")
 
         flight = _pick_active_flight(resp.json().get("flights", []))
         if flight is None:
+            METRICS.incr("flightaware.notfound")
             return None
 
         origin = _airport_code(flight.get("origin"))
         destination = _airport_code(flight.get("destination"))
         if not origin and not destination:
+            METRICS.incr("flightaware.notfound")
             return None  # flight known but no usable route
 
+        METRICS.incr("flightaware.found")
         airline = (
             airline_from_callsign(callsign)
             or airline_from_icao(flight.get("operator"))

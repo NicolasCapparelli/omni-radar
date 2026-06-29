@@ -131,6 +131,12 @@ Field notes:
 ### `GET /health`
 Liveness probe + cache size + which integrations are active.
 
+### `GET /api/metrics`
+Session usage counters: external API calls per provider (OpenSky / adsbdb /
+FlightAware) versus work served locally (route cache hits, grounded-plane
+filtering, offline aircraft-DB enrichment), plus a `local_served_ratio`.
+`GET /api/metrics/reset` zeroes the counters for a clean measurement run.
+
 ## Caching & rate-limit behavior
 
 Flight routes are the only thing requiring a network call (everything else is

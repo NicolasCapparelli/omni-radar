@@ -17,6 +17,20 @@ the API (`app/`) — it only talks to the middleware over HTTP.
   and selects. `Auto-refresh 30s` re-polls the API on the device's cadence.
 - A raw-JSON panel shows the full payload for the selected aircraft.
 
+## Usage screen
+The **Usage** tab (top bar) shows live session metrics: external API calls per
+provider vs. lookups served locally (cache hits, grounded-plane filtering,
+offline aircraft-DB enrichment), a "served locally" ratio, FlightAware quota
+usage, **OpenSky credits remaining**, and a made-vs-avoided breakdown.
+Auto-refreshes every 5s; includes a Reset for clean measurement runs. Backed by
+`GET /api/metrics`.
+
+## Adaptive polling
+The console's **Live** refresh uses the interval the middleware advertises via
+the `X-Recommended-Poll-Seconds` response header (you set a baseline; the server
+raises it automatically as OpenSky credits run low). OpenSky data only refreshes
+every ~5s, so that's the practical floor.
+
 ## Run
 
 1. Start the middleware (from the project root):

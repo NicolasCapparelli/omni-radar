@@ -18,6 +18,7 @@ from typing import Optional
 import httpx
 
 from .geo import BoundingBox
+from .metrics import METRICS
 
 logger = logging.getLogger("traffic_radar.opensky")
 
@@ -205,12 +206,34 @@ class OpenSkyClient:
         }
         try:
             headers = await self._auth_headers()
+            METRICS.incr("opensky.requests")
             resp = await self._client.get(
                 f"{API_BASE}/states/all", params=params, headers=headers
             )
-            resp.raise_for_status()
         except httpx.HTTPError as exc:
+            METRICS.incr("opensky.errors")
             raise OpenSkyError(f"OpenSky request failed: {exc}") from exc
+
+        # Capture credit balance from the rate-limit headers when present.
+        remaining = resp.headers.get("X-Rate-Limit-Remaining")
+        if remaining is not None:
+            try:
+                METRICS.set_gauge("opensky.credits_remaining", int(remaining))
+            except ValueError:
+                pass
+
+        if resp.status_code == 429:
+            METRICS.incr("opensky.rate_limited")
+            retry = resp.headers.get("X-Rate-Limit-Retry-After-Seconds")
+            if retry is not None:
+                try:
+                    METRICS.set_gauge("opensky.retry_after_seconds", int(retry))
+                except ValueError:
+                    pass
+            raise OpenSkyError("OpenSky rate limit exceeded (HTTP 429)")
+        if resp.status_code != 200:
+            METRICS.incr("opensky.errors")
+            raise OpenSkyError(f"OpenSky returned HTTP {resp.status_code}")
 
         payload = resp.json()
         raw_states = payload.get("states") or []

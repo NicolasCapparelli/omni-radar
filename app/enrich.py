@@ -17,6 +17,7 @@ from typing import Sequence
 
 from .aircraft_db import AircraftDatabase
 from .cache import FlightMeta, MetadataCache
+from .metrics import METRICS
 from .models import AircraftPayload
 from .opensky import StateVector
 from .routes import RouteProvider, resolve_route
@@ -105,7 +106,9 @@ async def _resolve_metadata(
     """
     cached = await cache.get(callsign)
     if cached is not None:
+        METRICS.incr("routes.cache_hits")
         return cached
+    METRICS.incr("routes.cache_misses")
 
     if not any(p.enabled for p in providers):
         return _offline_meta(callsign)
@@ -137,6 +140,7 @@ def _build_payload(
     if aircraft_db is not None:
         record = aircraft_db.get(vector.icao24)
         if record is not None:
+            METRICS.incr("aircraftdb.hits")
             if (not model or model == "Unknown") and record.typecode:
                 model = record.typecode
             if record.model_name:
@@ -218,6 +222,7 @@ async def build_payloads(
     """
     # Classify up front so we can filter planes before any enrichment.
     typed = [(v, classify_type(v, aircraft_db)) for v in vectors]
+    METRICS.incr("requests.nearby")
 
     if filter_grounded_planes:
         min_speed_ms = plane_min_speed_mph * MPH_TO_MS
@@ -228,6 +233,7 @@ async def build_payloads(
         ]
         skipped = len(typed) - len(kept)
         if skipped:
+            METRICS.incr("enrich.planes_filtered", skipped)
             logger.info(
                 "Filtered %d plane(s) (on-ground or below %.0f mph) before enrichment",
                 skipped, plane_min_speed_mph,
@@ -240,4 +246,6 @@ async def build_payloads(
         )
         return _build_payload(vector, meta, vehicle_type, aircraft_db)
 
-    return await asyncio.gather(*(one(v, t) for (v, t) in typed))
+    payloads = await asyncio.gather(*(one(v, t) for (v, t) in typed))
+    METRICS.incr("aircraft.returned", len(payloads))
+    return payloads

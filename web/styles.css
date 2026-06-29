@@ -220,6 +220,10 @@ body {
 /* ── Aircraft table ── */
 .table-wrap { flex: 1; border: 1px solid var(--border-soft); border-radius: 8px; overflow: auto; min-height: 0; }
 .live-toggle { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.live-controls { display: flex; align-items: center; gap: 10px; }
+.poll-field { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+.poll-field input { width: 52px; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+.poll-info { font-size: 11px; color: var(--primary-bright); font-weight: 600; }
 .aircraft-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
 .aircraft-table thead th {
   position: sticky; top: 0; background: var(--container-high);
@@ -260,3 +264,52 @@ body {
 @media (max-width: 1080px) {
   .workspace { grid-template-columns: 1fr; overflow: auto; }
 }
+
+/* ── Top-bar nav tabs ── */
+.topbar-nav { display: flex; gap: 6px; margin-left: 32px; flex: 1; }
+.nav-btn { background: transparent; border: 1px solid transparent; color: var(--text-muted); font-weight: 600; font-size: 13px; padding: 6px 16px; border-radius: 6px; cursor: pointer; }
+.nav-btn:hover { background: var(--panel-low); }
+.nav-btn.active { background: var(--gold-soft); color: var(--primary); }
+
+/* ── Usage view ── */
+.usage-view { flex: 1; padding: 20px 24px; overflow: auto; }
+.usage-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.usage-head h2 { margin: 0; font-size: 20px; }
+.usage-sub { margin: 4px 0 0; font-size: 12px; color: var(--text-muted); }
+.usage-actions { display: flex; align-items: center; gap: 10px; }
+.ghost-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+.ghost-btn:hover { background: var(--panel-low); }
+.ghost-btn.danger { color: var(--error); border-color: var(--error-soft); }
+.ghost-btn .material-symbols-outlined { font-size: 16px; }
+
+.headline-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.hcard { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.hcard label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+.hcard .big { font-family: "JetBrains Mono", monospace; font-size: 34px; font-weight: 700; line-height: 1; }
+.hcard small { font-size: 11px; color: var(--text-muted); }
+.hcard.good { border-color: #bfe6cf; } .hcard.good .big { color: var(--ok); }
+.hcard.accent { border-color: var(--gold); } .hcard.accent .big { color: var(--primary-bright); }
+.hcard.warn { border-color: #f3d28a; } .hcard.warn .big { color: var(--warn); }
+
+.usage-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 16px; }
+.usage-grid .panel, .usage-bars { padding: 16px; }
+.usage-grid h3, .usage-bars h3 { margin: 0; font-size: 14px; }
+.usage-table { width: 100%; border-collapse: collapse; }
+.usage-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.usage-table th.num, .usage-table td.num { text-align: right; }
+.usage-table td { padding: 8px; font-family: "JetBrains Mono", monospace; font-size: 13px; border-bottom: 1px solid var(--border-soft); }
+.usage-table td.prov { font-family: "Inter"; font-weight: 600; }
+.usage-note { font-size: 11px; color: var(--text-muted); margin: 10px 2px 0; }
+
+.savings-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.savings-list li { display: flex; align-items: center; justify-content: space-between; padding: 9px 6px; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
+.savings-list li .material-symbols-outlined { font-size: 17px; color: var(--ok); vertical-align: middle; margin-right: 7px; }
+.savings-list li b { font-family: "JetBrains Mono", monospace; font-size: 15px; }
+
+.usage-bars { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+.bar-row { display: grid; grid-template-columns: 150px 1fr 60px; align-items: center; gap: 12px; margin: 10px 0; }
+.bar-row label { font-size: 12px; color: var(--text-muted); }
+.bar { background: var(--container); border-radius: 5px; height: 16px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+.bar span.bar-cost { background: var(--warn); }
+.bar-row b { font-family: "JetBrains Mono", monospace; text-align: right; font-size: 13px; }

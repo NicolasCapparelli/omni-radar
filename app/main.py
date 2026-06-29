@@ -11,7 +11,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.responses import JSONResponse
 
 from . import __version__
@@ -22,6 +22,7 @@ from .config import get_settings
 from .enrich import build_payloads
 from .flightaware import FlightAwareClient
 from .geo import compute_bounding_box
+from .metrics import METRICS
 from .models import AircraftPayload
 from .opensky import OpenSkyClient, OpenSkyError
 
@@ -125,8 +126,28 @@ async def health() -> dict:
     }
 
 
+@app.get("/api/metrics")
+async def metrics() -> dict:
+    """Session usage metrics: external API calls vs. work served locally."""
+    snap = METRICS.snapshot()
+    snap["cache_entries"] = app.state.cache.size
+    snap["aircraft_db_size"] = app.state.aircraft_db.size
+    snap["recommended_poll_seconds"] = METRICS.recommended_poll_seconds(
+        app.state.settings.poll_default_seconds, app.state.settings.poll_min_seconds
+    )
+    return snap
+
+
+@app.get("/api/metrics/reset")
+async def metrics_reset() -> dict:
+    """Zero the session counters (handy for a clean measurement run)."""
+    METRICS.reset()
+    return {"status": "reset"}
+
+
 @app.get("/api/nearby", response_model=list[AircraftPayload], response_model_by_alias=True)
 async def nearby(
+    response: Response,
     lat: float | None = Query(default=None, ge=-90, le=90,
                               description="Home latitude (defaults to HOME_LAT)."),
     lon: float | None = Query(default=None, ge=-180, le=180,
@@ -163,6 +184,11 @@ async def nearby(
         aircraft_db=app.state.aircraft_db,
         filter_grounded_planes=settings.filter_grounded_planes,
         plane_min_speed_mph=settings.plane_min_speed_mph,
+    )
+    response.headers["X-Recommended-Poll-Seconds"] = str(
+        METRICS.recommended_poll_seconds(
+            settings.poll_default_seconds, settings.poll_min_seconds
+        )
     )
     return payloads
 

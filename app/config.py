@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     filter_grounded_planes: bool = True
     plane_min_speed_mph: float = 60.0
 
+    # Polling guidance advertised to clients (device/web console poll us).
+    # OpenSky data refreshes every ~5s (the floor); credit back-off raises this.
+    poll_default_seconds: int = 30
+    poll_min_seconds: int = 5
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000

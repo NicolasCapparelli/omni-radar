@@ -47,6 +47,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "Content-Type",
                     resp.headers.get("Content-Type", "application/json"),
                 )
+                # Forward custom X- headers (e.g. X-Recommended-Poll-Seconds).
+                for key, value in resp.headers.items():
+                    if key.lower().startswith("x-"):
+                        self.send_header(key, value)
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)

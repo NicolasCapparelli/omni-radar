@@ -19,13 +19,17 @@
         <p>Middleware Test Console</p>
       </div>
     </div>
+    <div class="topbar-nav">
+      <button class="nav-btn active" id="navConsole">Console</button>
+      <button class="nav-btn" id="navUsage">Usage</button>
+    </div>
     <div class="topbar-status" id="topStatus">
       <span class="dot dot-idle" id="connDot"></span>
       <span id="connText">Idle</span>
     </div>
   </header>
 
-  <main class="workspace">
+  <main class="workspace" id="consoleView">
     <!-- LEFT: Device emulator -->
     <section class="panel device-panel">
       <div class="panel-head">
@@ -133,9 +137,11 @@
     <section class="panel console-panel">
       <div class="panel-head">
         <h2>Test Console</h2>
-        <label class="live-toggle">
-          <input type="checkbox" id="liveToggle" /> Auto-refresh 30s
-        </label>
+        <div class="live-controls">
+          <label class="live-toggle"><input type="checkbox" id="liveToggle" /> Live</label>
+          <span class="poll-field">every <input id="pollInterval" type="number" min="5" value="30" /> s</span>
+          <span id="pollInfo" class="poll-info"></span>
+        </div>
       </div>
 
       <div class="request-bar">
@@ -177,6 +183,73 @@
         <summary>Selected aircraft — raw JSON</summary>
         <pre id="rawJson">// select an aircraft</pre>
       </details>
+    </section>
+  </main>
+
+  <!-- USAGE VIEW -->
+  <main class="usage-view" id="usageView" hidden>
+    <div class="usage-head">
+      <div>
+        <h2>API Usage &amp; Local Savings</h2>
+        <p class="usage-sub">Session counters since startup / last reset. <span id="usageUptime"></span></p>
+        <p class="usage-sub" id="recPoll"></p>
+      </div>
+      <div class="usage-actions">
+        <label class="live-toggle"><input type="checkbox" id="usageLive" checked /> Auto-refresh 5s</label>
+        <button class="ghost-btn" id="btnUsageRefresh"><span class="material-symbols-outlined">refresh</span> Refresh</button>
+        <button class="ghost-btn danger" id="btnUsageReset"><span class="material-symbols-outlined">restart_alt</span> Reset</button>
+      </div>
+    </div>
+
+    <!-- Headline cards -->
+    <div class="headline-cards">
+      <div class="hcard">
+        <label>External API calls</label>
+        <span class="big" id="hExternal">0</span>
+        <small>OpenSky + adsbdb + FlightAware</small>
+      </div>
+      <div class="hcard good">
+        <label>Calls avoided locally</label>
+        <span class="big" id="hAvoided">0</span>
+        <small id="hAvoidedDetail">cache + filtering</small>
+      </div>
+      <div class="hcard accent">
+        <label>Served locally</label>
+        <span class="big" id="hRatio">—</span>
+        <small>of all route lookups</small>
+      </div>
+      <div class="hcard warn">
+        <label>FlightAware calls</label>
+        <span class="big" id="hFa">0</span>
+        <small>free tier ≈ 20k/mo</small>
+      </div>
+    </div>
+
+    <div class="usage-grid">
+      <!-- External providers -->
+      <section class="panel">
+        <div class="panel-head"><h3>External providers (cost)</h3></div>
+        <table class="usage-table">
+          <thead><tr><th>Provider</th><th class="num">Requests</th><th class="num">Found</th><th class="num">Not found</th><th class="num">429</th><th class="num">Errors</th></tr></thead>
+          <tbody id="providerRows"></tbody>
+        </table>
+        <p class="usage-note" id="openskyNote"></p>
+        <p class="usage-note" id="openskyCredits"></p>
+      </section>
+
+      <!-- Local savings -->
+      <section class="panel">
+        <div class="panel-head"><h3>Served locally (free)</h3></div>
+        <ul class="savings-list" id="savingsList"></ul>
+      </section>
+    </div>
+
+    <section class="panel usage-bars">
+      <div class="panel-head"><h3>Route lookups: made vs. avoided</h3></div>
+      <div class="bar-row"><label>Cache hits</label><div class="bar"><span id="barCache"></span></div><b id="numCache">0</b></div>
+      <div class="bar-row"><label>Filtered (grounded)</label><div class="bar"><span id="barFiltered"></span></div><b id="numFiltered">0</b></div>
+      <div class="bar-row"><label>Provider calls</label><div class="bar"><span class="bar-cost" id="barCalls"></span></div><b id="numCalls">0</b></div>
+      <p class="usage-note">Each cache hit and each filtered plane is one route lookup we did <em>not</em> send to a provider.</p>
     </section>
   </main>
 
