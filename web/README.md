@@ -52,7 +52,11 @@ python serve.py --port 8080 --api http://192.168.1.50:8000
 ```
 
 ## Files
-- `index.html` — layout
+- `index.html` — shell with mount points; markup lives in `partials/`
+- `partials/` — HTML fragments (`topbar`, `console`, `usage`) injected at runtime
+- `js/` — ES modules (`main`, `state`, `format`, `api`, `device`, `table`,
+  `console`, `usage`, `status`, `dom`)
 - `styles.css` — cream/gold chrome + dark green-phosphor LCD theme
-- `app.js` — fetch, table, device rendering, button behavior
 - `serve.py` — static server + API proxy (stdlib only, no dependencies)
+
+See [DevGuide/web-console.md](../DevGuide/web-console.md) for the architecture.
