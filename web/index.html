@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omni-Radar Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="material-symbols-outlined">radar</span>
+      <div>
+        <h1>OMNI-RADAR</h1>
+        <p>Middleware Test Console</p>
+      </div>
+    </div>
+    <div class="topbar-status" id="topStatus">
+      <span class="dot dot-idle" id="connDot"></span>
+      <span id="connText">Idle</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- LEFT: Device emulator -->
+    <section class="panel device-panel">
+      <div class="panel-head">
+        <h2>Device Emulator</h2>
+        <span class="pill" id="modePill">AIR</span>
+      </div>
+
+      <div class="device-stage">
+        <div class="bezel">
+          <!-- 320x240 LCD -->
+          <div class="lcd" id="lcd">
+            <div class="lcd-header">
+              <span class="material-symbols-outlined lcd-mode-icon" id="lcdModeIcon">flight</span>
+              <span class="lcd-title">OMNI-RADAR</span>
+              <span class="lcd-wifi">
+                <span class="material-symbols-outlined">wifi</span>
+                <span class="lcd-ver">v1.0</span>
+              </span>
+            </div>
+
+            <div class="lcd-body" id="lcdBody">
+              <div class="lcd-empty" id="lcdEmpty">NO SIGNAL<br /><small>Scan to acquire targets</small></div>
+
+              <div class="lcd-card" id="lcdCard" hidden>
+                <div class="lcd-emergency" id="lcdEmergency" hidden>⚠ EMERGENCY</div>
+                <div class="lcd-callsign" id="lcdCallsign">--------</div>
+                <div class="lcd-route">
+                  <span id="lcdOrigin">---</span>
+                  <span class="arrow">→</span>
+                  <span id="lcdDest">---</span>
+                </div>
+                <div class="lcd-route-names">
+                  <span id="lcdOriginName">Unknown</span>
+                  <span id="lcdDestName">Unknown</span>
+                </div>
+
+                <div class="lcd-airline" id="lcdAirline">Unknown Airline</div>
+                <div class="lcd-model">
+                  <span class="material-symbols-outlined" id="lcdTypeIcon">flight</span>
+                  <span id="lcdModel">---- · Unknown</span>
+                </div>
+
+                <div class="lcd-telemetry">
+                  <div><label>ALT</label><span id="lcdAlt">0 ft</span></div>
+                  <div><label>SPD</label><span id="lcdSpd">0 kt</span></div>
+                  <div class="lcd-hdg"><label>HDG</label><span id="lcdHdg">0°</span>
+                    <span class="material-symbols-outlined hdg-arrow" id="lcdHdgArrow">navigation</span>
+                  </div>
+                </div>
+
+                <div class="lcd-footer-row">
+                  <span class="lcd-vspd" id="lcdVspd">— level</span>
+                  <span class="lcd-badges" id="lcdBadges"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lcd-footer">
+              <span id="lcdIndex">0 / 0 TRACKED</span>
+              <span class="lcd-mode-badge" id="lcdTrackMode">AUTO-CYCLING</span>
+            </div>
+
+            <div class="lcd-off" id="lcdOff" hidden></div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button class="hw-btn hw-power" id="btnPower">
+            <span>POWER</span><small>sleep / wake</small>
+          </button>
+          <button class="hw-btn" id="btnMode">
+            <span>MODE</span><small>AIR / MARINE</small>
+          </button>
+          <button class="hw-btn" id="btnAction">
+            <span>ACTION</span><small>scroll / lock + step</small>
+          </button>
+        </div>
+        <p class="hint" id="actionHint">Auto-Scroll: cycling every 5s. Press ACTION to lock.</p>
+      </div>
+    </section>
+
+    <!-- RIGHT: Test console -->
+    <section class="panel console-panel">
+      <div class="panel-head">
+        <h2>Test Console</h2>
+        <label class="live-toggle">
+          <input type="checkbox" id="liveToggle" /> Auto-refresh 30s
+        </label>
+      </div>
+
+      <div class="request-bar">
+        <div class="field"><label>Latitude</label><input id="inLat" value="40.7580" /></div>
+        <div class="field"><label>Longitude</label><input id="inLon" value="-73.9965" /></div>
+        <div class="field small"><label>Radius (mi)</label><input id="inRadius" value="15" /></div>
+        <button class="scan-btn" id="btnScan">
+          <span class="material-symbols-outlined">radar</span> SCAN
+        </button>
+      </div>
+      <div class="request-url" id="requestUrl">GET /api/nearby?lat=40.7580&lon=-73.9965&radius=15</div>
+
+      <div class="status-strip">
+        <div class="stat"><label>Tracked</label><span id="statTracked">—</span></div>
+        <div class="stat"><label>Cache</label><span id="statCache">—</span></div>
+        <div class="stat providers"><label>Providers</label>
+          <span id="statProviders" class="provider-dots">—</span>
+        </div>
+        <div class="stat"><label>Updated</label><span id="statUpdated">—</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="aircraft-table">
+          <thead>
+            <tr>
+              <th></th><th>Callsign</th><th>Type</th><th>Model</th>
+              <th>Operator</th><th>Route</th>
+              <th class="num">Alt</th><th class="num">Spd</th><th class="num">V/S</th>
+              <th>Class</th><th>Flag</th>
+            </tr>
+          </thead>
+          <tbody id="aircraftBody">
+            <tr class="empty-row"><td colspan="11">No data — press SCAN.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="raw-json">
+        <summary>Selected aircraft — raw JSON</summary>
+        <pre id="rawJson">// select an aircraft</pre>
+      </details>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
