@@ -21,6 +21,9 @@ from typing import Optional
 
 logger = logging.getLogger("traffic_radar.cache")
 
+# Bump when the persisted FlightMeta shape changes, to auto-discard stale files.
+CACHE_VERSION = 2
+
 
 @dataclass
 class FlightMeta:
@@ -30,8 +33,10 @@ class FlightMeta:
     model: str = "Unknown"
     origin: str = "N/A"
     origin_name: str = "Unknown Route"
+    origin_country: str = ""       # ISO alpha-2 (e.g. "US"), for the flag
     destination: str = "N/A"
     destination_name: str = "Unknown Route"
+    destination_country: str = ""
     is_placeholder: bool = False
 
 
@@ -94,8 +99,10 @@ class MetadataCache:
     def load(self) -> int:
         """Load persisted entries (skipping expired). Returns count loaded.
 
-        Synchronous and safe to call once at startup before serving. Failures
-        are swallowed so a corrupt/missing file never blocks startup.
+        Synchronous and safe to call once at startup before serving. Failures,
+        a missing file, or a schema-version mismatch are handled by starting
+        fresh, so a stale/legacy cache never blocks startup or serves outdated
+        shapes.
         """
         if not self._persist_path or not self._persist_path.exists():
             return 0
@@ -105,9 +112,16 @@ class MetadataCache:
             logger.warning("Could not read route cache %s: %s", self._persist_path, exc)
             return 0
 
+        # Discard legacy/old-schema files (e.g. before a FlightMeta field change).
+        if not isinstance(raw, dict) or raw.get("version") != CACHE_VERSION:
+            logger.info(
+                "Route cache schema mismatch (need v%s); starting fresh.", CACHE_VERSION
+            )
+            return 0
+
         now = _now_ms()
         loaded = 0
-        for callsign, item in (raw or {}).items():
+        for callsign, item in (raw.get("entries") or {}).items():
             try:
                 expires = float(item["expires_at_ms"])
                 if expires <= now:
@@ -126,7 +140,7 @@ class MetadataCache:
             return
         now = _now_ms()
         async with self._lock:
-            snapshot = {
+            entries = {
                 callsign: {
                     "value": asdict(entry.value),
                     "expires_at_ms": entry.expires_at_ms,
@@ -134,7 +148,9 @@ class MetadataCache:
                 for callsign, entry in self._store.items()
                 if entry.expires_at_ms > now
             }
-        await asyncio.to_thread(self._write_json, snapshot)
+        await asyncio.to_thread(
+            self._write_json, {"version": CACHE_VERSION, "entries": entries}
+        )
 
     def _write_json(self, snapshot: dict) -> None:
         try:

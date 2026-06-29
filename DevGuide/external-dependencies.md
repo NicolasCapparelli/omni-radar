@@ -138,6 +138,18 @@ Pinned in `requirements.txt`: `fastapi`, `uvicorn[standard]`, `httpx`,
 `pydantic`, `pydantic-settings`. The web console server (`web/serve.py`) and the
 DB downloader use only the Python standard library.
 
+## Web console CDN assets (debug UI only)
+
+The `web/` console (not the middleware or hardware) loads a few third-party
+assets directly in the browser:
+- **Google Fonts** — Inter + JetBrains Mono + Material Symbols.
+- **flagcdn.com** — small country-flag PNGs next to airport codes
+  (`https://flagcdn.com/32x24/{iso}.png`). Used for display only; flags are
+  skipped gracefully when an airport's country is unknown.
+
+These are convenience assets for the developer console and are not part of the
+middleware's runtime dependencies.
+
 ---
 
 ## How we monitor it

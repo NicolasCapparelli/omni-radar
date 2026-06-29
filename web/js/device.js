@@ -46,6 +46,8 @@ function renderCard() {
   $("lcdCallsign").textContent = a.callsign || "--------";
   $("lcdOrigin").textContent = a.origin || "N/A";
   $("lcdDest").textContent = a.destination || "N/A";
+  setFlag("lcdOriginFlag", a.origin_country);
+  setFlag("lcdDestFlag", a.destination_country);
   $("lcdOriginName").textContent = a.origin_name || "";
   $("lcdDestName").textContent = a.destination_name || "";
   $("lcdAirline").textContent = a.operator && a.operator !== "Unknown" ? a.operator : a.airline;
@@ -73,6 +75,18 @@ function renderCard() {
   $("lcd").classList.toggle("alert", emergency);
 
   $("lcdIndex").textContent = `${state.selected + 1} / ${state.aircraft.length} TRACKED`;
+}
+
+// Point a flag <img> at flagcdn for an ISO alpha-2 country code, or hide it.
+function setFlag(id, iso) {
+  const el = $(id);
+  if (iso && /^[A-Za-z]{2}$/.test(iso)) {
+    el.src = `https://flagcdn.com/32x24/${iso.toLowerCase()}.png`;
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+    el.removeAttribute("src");
+  }
 }
 
 // ── Radar view (fixed compass, North up) ────────────────────────────────────

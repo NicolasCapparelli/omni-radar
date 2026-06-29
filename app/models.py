@@ -29,10 +29,14 @@ class AircraftPayload(BaseModel):
                         description="Three-letter origin airport code (IATA).")
     origin_name: str = Field(default="Unknown Route",
                              description="Full origin airport facility name.")
+    origin_country: str = Field(default="",
+                                description="Origin airport country (ISO alpha-2).")
     destination: str = Field(default="N/A",
                              description="Three-letter destination airport code (IATA).")
     destination_name: str = Field(default="Unknown Route",
                                   description="Full destination airport facility name.")
+    destination_country: str = Field(default="",
+                                     description="Destination airport country (ISO alpha-2).")
     altitude_feet: int = Field(default=0, description="Barometric altitude in feet.")
     speed_knots: int = Field(default=0, description="Ground speed in knots.")
     vertical_speed_fpm: int = Field(

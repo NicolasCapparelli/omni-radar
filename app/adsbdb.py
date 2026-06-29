@@ -31,6 +31,10 @@ def _airport_name(node: dict) -> str:
     return node.get("name") or node.get("municipality") or "Unknown Route"
 
 
+def _airport_country(node: dict) -> str:
+    return (node.get("country_iso_name") or "").strip()
+
+
 class AdsbdbClient:
     """Async client for adsbdb callsign -> route lookups."""
 
@@ -110,6 +114,8 @@ class AdsbdbClient:
             model="Unknown",  # filled from the offline aircraft DB
             origin=_airport_code(origin),
             origin_name=_airport_name(origin),
+            origin_country=_airport_country(origin),
             destination=_airport_code(destination),
             destination_name=_airport_name(destination),
+            destination_country=_airport_country(destination),
         )
