@@ -8,7 +8,7 @@ import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { initDevice, renderDevice, setTrackMode } from "./device.js";
 import { highlightRow } from "./table.js";
-import { initConsole, scan } from "./console.js";
+import { initConsole, scan, applyMode } from "./console.js";
 import { initUsage } from "./usage.js";
 import { refreshHealth } from "./status.js";
 
@@ -18,7 +18,7 @@ function select(i) {
   highlightRow();
   renderDevice();
   $("rawJson").textContent =
-    i >= 0 ? JSON.stringify(state.aircraft[i], null, 2) : "// select an aircraft";
+    i >= 0 ? JSON.stringify(state.aircraft[i], null, 2) : "// select a target";
 }
 
 // A click in the results table locks tracking, then selects.
@@ -46,7 +46,7 @@ async function init() {
       `<p style="color:#b3261e;padding:16px">Failed to load UI: ${err.message}</p>`);
     return;
   }
-  initDevice(select);
+  initDevice(select, applyMode);
   initConsole({ select, onRowSelect });
   initUsage();
   setTrackMode("auto");

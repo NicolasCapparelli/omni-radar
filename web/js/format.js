@@ -10,9 +10,22 @@ export const TYPE_ICON = {
   Glider: "paragliding", Ultralight: "paragliding", Skydiver: "paragliding",
   "Lighter-than-air": "cloud", Drone: "mode_fan", Spacecraft: "rocket_launch",
   "Surface Vehicle": "directions_car", Obstacle: "warning",
+  // Marine (AIS) vessel categories.
+  Cargo: "directions_boat", Tanker: "directions_boat", Passenger: "directions_boat",
+  "High-Speed Craft": "directions_boat", Tug: "directions_boat", Towing: "directions_boat",
+  Dredger: "directions_boat", "Diving Ops": "scuba_diving", Fishing: "phishing",
+  Sailing: "sailing", "Pleasure Craft": "sailing", "Pilot Vessel": "anchor",
+  "Search and Rescue": "emergency", "Law Enforcement": "local_police",
+  "Medical Transport": "local_hospital", "Port Tender": "anchor",
+  "Anti-Pollution": "directions_boat", Military: "directions_boat",
+  Noncombatant: "directions_boat", "Wing-in-Ground": "flight", Other: "directions_boat",
 };
 
 export const iconFor = (t) => TYPE_ICON[t] || "flight";
+
+// Marine default is a boat, not a plane — vessels with no static data yet
+// (ship type still Unknown) should still read as boats.
+export const iconForVessel = (t) => TYPE_ICON[t] || "directions_boat";
 
 export const classChip = (c) =>
   "chip-" + String(c || "unknown").toLowerCase().replace(/[^a-z]/g, "");

@@ -24,6 +24,8 @@
   --c-private: #6b7280;
   --c-military: #4d7c0f;
   --c-government: #0d9488;
+  --c-fishing: #0891b2;
+  --c-pleasure: #9333ea;
   --c-unknown: #9ca3af;
 
   /* LCD */
@@ -31,6 +33,26 @@
   --lcd-accent: #ffd633;
   --lcd-dim: #9aa0a6;
   --lcd-line: #333a33;
+}
+
+/* Marine mode: shift the cream/gold chrome to a blue palette at a similar
+   lightness/saturation (hue ~210° instead of ~45°). Toggled on <body> by
+   console.js#applyMode when MODE switches to MARINE. */
+body.marine-theme {
+  --bg: #eef4fb;
+  --panel: #ffffff;
+  --panel-low: #eaf1f8;
+  --container: #e4edf6;
+  --container-high: #dae6f2;
+  --border: #a9c1d8;
+  --border-soft: #d6e1ec;
+  --text: #141a1f;
+  --text-muted: #586675;
+  --primary: #0d4f74;
+  --primary-bright: #1f7bb8;
+  --gold: #3a9bd9;
+  --gold-soft: #9bd2f5;
+  --lcd-accent: #36d6ff;
 }
 
 * { box-sizing: border-box; }
@@ -254,8 +276,11 @@ body {
 .chip-private { background: var(--c-private); }
 .chip-military { background: var(--c-military); }
 .chip-government { background: var(--c-government); }
+.chip-fishing { background: var(--c-fishing); }
+.chip-pleasure { background: var(--c-pleasure); }
 .chip-unknown { background: var(--c-unknown); }
 .flag { font-size: 10px; font-weight: 700; font-family: "Inter"; }
+.flag-img { width: 20px; height: 15px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
 .flag-emergency { color: var(--error); }
 .flag-special { color: var(--primary-bright); }
 

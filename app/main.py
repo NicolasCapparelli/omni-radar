@@ -11,19 +11,21 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, Path, Query, Response
 from fastapi.responses import JSONResponse
 
 from . import __version__
 from .adsbdb import AdsbdbClient
 from .aircraft_db import AircraftDatabase, ensure_database
 from .cache import MetadataCache, run_gc_loop
+from .channels import ChannelManager, run_reaper_loop
 from .config import get_settings
 from .enrich import build_payloads
 from .flightaware import FlightAwareClient
 from .geo import compute_bounding_box
+from .marine_enrich import build_vessel_payloads
 from .metrics import METRICS
-from .models import AircraftPayload
+from .models import AircraftPayload, VesselPayload
 from .opensky import OpenSkyClient, OpenSkyError
 
 logging.basicConfig(
@@ -82,8 +84,31 @@ async def lifespan(app: FastAPI):
     if not settings.adsbdb_enabled and not settings.flightaware_enabled:
         logger.warning("No route providers enabled — routes will be unavailable.")
 
+    # Marine (AIS): lazily-opened, idle-expiring channels over aisstream.io.
+    app.state.marine = (
+        ChannelManager(
+            api_key=settings.aisstream_api_key,
+            vessel_ttl_ms=settings.marine_vessel_ttl_ms,
+            idle_ttl_ms=settings.marine_channel_idle_ttl_ms,
+            ws_url=settings.aisstream_ws_url,
+        )
+        if settings.marine_enabled
+        else None
+    )
+    if app.state.marine is None:
+        logger.warning(
+            "Marine disabled — set AISSTREAM_API_KEY to enable /api/marine."
+        )
+
     gc_task = asyncio.create_task(
         run_gc_loop(app.state.cache, settings.gc_interval_ms)
+    )
+    marine_reaper = (
+        asyncio.create_task(
+            run_reaper_loop(app.state.marine, settings.marine_gc_interval_ms)
+        )
+        if app.state.marine is not None
+        else None
     )
 
     try:
@@ -94,6 +119,14 @@ async def lifespan(app: FastAPI):
             await gc_task
         except asyncio.CancelledError:
             pass
+        if marine_reaper is not None:
+            marine_reaper.cancel()
+            try:
+                await marine_reaper
+            except asyncio.CancelledError:
+                pass
+        if app.state.marine is not None:
+            await app.state.marine.close_all()
         await app.state.cache.save()
         await app.state.opensky.aclose()
         await app.state.adsbdb.aclose()
@@ -123,6 +156,10 @@ async def health() -> dict:
         "cache_entries": app.state.cache.size,
         "aircraft_db_loaded": app.state.aircraft_db.loaded,
         "aircraft_db_size": app.state.aircraft_db.size,
+        "marine_enabled": settings.marine_enabled,
+        "marine_channels": (
+            app.state.marine.stats() if app.state.marine is not None else None
+        ),
     }
 
 
@@ -135,6 +172,8 @@ async def metrics() -> dict:
     snap["recommended_poll_seconds"] = METRICS.recommended_poll_seconds(
         app.state.settings.poll_default_seconds, app.state.settings.poll_min_seconds
     )
+    if app.state.marine is not None:
+        snap["marine"]["channel_detail"] = app.state.marine.stats()
     return snap
 
 
@@ -191,6 +230,90 @@ async def nearby(
         )
     )
     return payloads
+
+
+_CHANNEL_KEY = Path(
+    pattern=r"^[A-Za-z0-9_-]{1,32}$",
+    description="Channel key (1-32 chars: letters, digits, '-', '_').",
+)
+
+
+def _marine_box(settings, lat, lon, radius):
+    """Resolve a bounding box for a marine request from query params/defaults."""
+    home_lat = lat if lat is not None else settings.home_lat
+    home_lon = lon if lon is not None else settings.home_lon
+    radius_miles = radius if radius is not None else settings.marine_default_radius_miles
+    return compute_bounding_box(home_lat, home_lon, radius_miles)
+
+
+@app.get(
+    "/api/marine/{channel}/nearby",
+    response_model=list[VesselPayload],
+    response_model_by_alias=True,
+)
+async def marine_nearby(
+    response: Response,
+    channel: str = _CHANNEL_KEY,
+    lat: float | None = Query(default=None, ge=-90, le=90,
+                              description="Channel latitude (defaults to HOME_LAT)."),
+    lon: float | None = Query(default=None, ge=-180, le=180,
+                              description="Channel longitude (defaults to HOME_LON)."),
+    radius: int | None = Query(default=None, gt=0, le=250,
+                               description="Search radius in miles."),
+):
+    """Return enriched vessels for a marine channel.
+
+    Each ``{channel}`` owns its own aisstream WebSocket subscription, opened
+    lazily on first request and kept alive for 8h after the last request. A
+    just-opened channel returns whatever has arrived so far while it warms up.
+    """
+    settings = app.state.settings
+    if app.state.marine is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "marine_disabled",
+                     "detail": "Set AISSTREAM_API_KEY to enable marine tracking."},
+        )
+
+    box = _marine_box(settings, lat, lon, radius)
+    vessels, channel_box = await app.state.marine.snapshot(channel, box)
+    # Filter to the requested box (narrower than or equal to the channel box).
+    payloads = build_vessel_payloads(
+        vessels,
+        box=box,
+        filter_moored=settings.filter_moored_vessels,
+        vessel_min_speed_knots=settings.marine_vessel_min_speed_knots,
+    )
+    logger.info(
+        "GET /api/marine/%s/nearby r=%smi → %d vessels (store=%d)",
+        channel, radius or settings.marine_default_radius_miles,
+        len(payloads), len(vessels),
+    )
+    response.headers["X-Recommended-Poll-Seconds"] = str(settings.poll_default_seconds)
+    return payloads
+
+
+@app.post("/api/marine/{channel}")
+async def marine_repoint(
+    channel: str = _CHANNEL_KEY,
+    lat: float = Query(ge=-90, le=90, description="New channel latitude."),
+    lon: float = Query(ge=-180, le=180, description="New channel longitude."),
+    radius: int | None = Query(default=None, gt=0, le=250,
+                               description="New search radius in miles."),
+):
+    """Re-point a channel to new coordinates (tears down + reopens its socket)."""
+    settings = app.state.settings
+    if app.state.marine is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "marine_disabled",
+                     "detail": "Set AISSTREAM_API_KEY to enable marine tracking."},
+        )
+    box = _marine_box(settings, lat, lon, radius)
+    await app.state.marine.repoint(channel, box)
+    return {"status": "repointed", "channel": channel,
+            "lat": lat, "lon": lon,
+            "radius": radius or settings.marine_default_radius_miles}
 
 
 def run() -> None:

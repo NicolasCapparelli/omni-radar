@@ -65,6 +65,23 @@ class Settings(BaseSettings):
     filter_grounded_planes: bool = True
     plane_min_speed_mph: float = 60.0
 
+    # ── Marine (AIS) ─────────────────────────────────────────────────────
+    # aisstream.io is the required marine source (free WebSocket). Leave the
+    # key blank to disable the marine endpoints entirely.
+    aisstream_api_key: str = ""
+    aisstream_enabled: bool = True
+    aisstream_ws_url: str = "wss://stream.aisstream.io/v0/stream"
+
+    # Marine channels: each /api/marine/{channel}/ holds its own WebSocket.
+    marine_default_radius_miles: int = 15
+    marine_channel_idle_ttl_ms: int = 28_800_000  # 8h from last request
+    marine_vessel_ttl_ms: int = 900_000           # drop a vessel after 15m silence
+    marine_gc_interval_ms: int = 300_000          # reap channels + sweep every 5m
+
+    # Marine filtering: drop moored/anchored/aground or barely-moving vessels.
+    filter_moored_vessels: bool = True
+    marine_vessel_min_speed_knots: float = 0.5
+
     # Polling guidance advertised to clients (device/web console poll us).
     # OpenSky data refreshes every ~5s (the floor); credit back-off raises this.
     poll_default_seconds: int = 30
@@ -82,6 +99,10 @@ class Settings(BaseSettings):
     @property
     def flightaware_enabled(self) -> bool:
         return bool(self.flightaware_api_key)
+
+    @property
+    def marine_enabled(self) -> bool:
+        return bool(self.aisstream_enabled and self.aisstream_api_key)
 
 
 @lru_cache

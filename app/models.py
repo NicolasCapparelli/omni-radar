@@ -70,3 +70,58 @@ class AircraftPayload(BaseModel):
         default="None",
         description="Special operator flag (Military, Police, News, Cargo, ...).",
     )
+
+
+class VesselPayload(BaseModel):
+    """A single tracked marine vessel (AIS).
+
+    The marine counterpart to :class:`AircraftPayload`. Overlapping concepts
+    (speed, heading, country, operator class) keep the same field names; the
+    rest is domain-specific (draught, ETA, nav status, dimensions). There is no
+    altitude/squawk here, and no draught/ETA on the aircraft side — the hard
+    external cutoff between AIR and MARINE.
+    """
+
+    mmsi: str = Field(description="Maritime Mobile Service Identity (9 digits).")
+    name: str = Field(default="Unknown", description="Vessel name.")
+    callsign: str = Field(default="", description="Radio callsign.")
+    imo_number: str = Field(default="Unknown",
+                            description="IMO ship identification number.")
+    vessel_type: str = Field(
+        default="Unknown",
+        description="Vessel category: Cargo, Tanker, Passenger, Fishing, Tug, "
+        "Sailing, Pleasure Craft, High-Speed Craft, Pilot Vessel, "
+        "Search and Rescue, Law Enforcement, Military, ...",
+    )
+    ship_type_code: int = Field(default=0,
+                                description="Raw AIS ship type code (0-99).")
+    nav_status: str = Field(default="Unknown",
+                            description="Navigational status (e.g. Under way using engine).")
+    destination: str = Field(default="N/A",
+                             description="Reported destination (free-text from AIS).")
+    eta: str = Field(default="", description="Reported ETA (MM-DD HH:MM UTC), if any.")
+    speed_knots: int = Field(default=0, description="Speed over ground in knots.")
+    course_degrees: int = Field(default=0,
+                                description="Course over ground, 0-359 degrees.")
+    heading_degrees: int = Field(default=0,
+                                 description="True heading, 0-359 degrees.")
+    latitude: float | None = Field(default=None, description="WGS-84 latitude (degrees).")
+    longitude: float | None = Field(default=None, description="WGS-84 longitude (degrees).")
+    length_meters: int = Field(default=0, description="Overall length in meters.")
+    beam_meters: int = Field(default=0, description="Overall beam (width) in meters.")
+    draught_meters: float = Field(default=0.0,
+                                  description="Maximum static draught in meters.")
+    country: str = Field(default="Unknown",
+                         description="Flag state (from the MMSI MID).")
+    country_iso: str = Field(default="",
+                             description="Flag state ISO alpha-2 code (for flags).")
+    operator_class: str = Field(
+        default="Unknown",
+        description="Operator category: Commercial, Fishing, Military, "
+        "Government, Pleasure, Unknown.",
+    )
+    special_designation: str = Field(
+        default="None",
+        description="Special flag (Military, Law Enforcement, Search and "
+        "Rescue, Pilot, Tug, Medical, ...).",
+    )

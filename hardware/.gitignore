@@ -1,0 +1,10 @@
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Local, secret-bearing device config (see config.example.h)
+include/config.h
+
+# IDE
+.vscode/

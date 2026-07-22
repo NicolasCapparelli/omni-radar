@@ -116,6 +116,7 @@
     <div class="field"><label>Latitude</label><input id="inLat" value="40.7580" /></div>
     <div class="field"><label>Longitude</label><input id="inLon" value="-73.9965" /></div>
     <div class="field small"><label>Radius (mi)</label><input id="inRadius" value="15" /></div>
+    <div class="field small" id="channelField" hidden><label>Channel</label><input id="inChannel" value="web" /></div>
     <button class="scan-btn" id="btnScan">
       <span class="material-symbols-outlined">radar</span> SCAN
     </button>
@@ -134,7 +135,7 @@
   <div class="table-wrap">
     <table class="aircraft-table">
       <thead>
-        <tr>
+        <tr id="tableHead">
           <th></th><th>Callsign</th><th>Type</th><th>Model</th>
           <th>Operator</th><th>Route</th>
           <th class="num">Alt</th><th class="num">Spd</th><th class="num">V/S</th>
@@ -148,7 +149,7 @@
   </div>
 
   <details class="raw-json">
-    <summary>Selected aircraft — raw JSON</summary>
+    <summary>Selected target — raw JSON</summary>
     <pre id="rawJson">// select an aircraft</pre>
   </details>
 </section>

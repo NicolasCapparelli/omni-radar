@@ -109,6 +109,19 @@ class Metrics:
                 "not_found": c["routes.resolved_notfound"],
                 "unavailable": c["routes.resolved_unavailable"],
             },
+            "marine": {
+                "requests": c["requests.marine_nearby"],
+                "vessels_returned": c["vessels.returned"],
+                "vessels_filtered": c["marine.vessels_filtered"],
+                "channels_active": self._g.get("marine.channels_active"),
+                "ais": {
+                    "ws_connected": self._g.get("ais.ws_connected"),
+                    "ws_reconnects": c["ais.ws_reconnects"],
+                    "messages_received": c["ais.messages_received"],
+                    "position_reports": c["ais.position_reports"],
+                    "static_reports": c["ais.static_reports"],
+                },
+            },
         }
 
 

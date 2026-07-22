@@ -27,6 +27,19 @@ class BoundingBox:
         """Return the box ordered as OpenSky expects: (lamin, lamax, lomin, lomax)."""
         return (self.lamin, self.lamax, self.lomin, self.lomax)
 
+    def as_aisstream_bbox(self) -> list[list[list[float]]]:
+        """Return the box as aisstream.io expects it.
+
+        aisstream subscribes to ``BoundingBoxes`` of ``[[lat, lon], [lat, lon]]``
+        corner pairs (SW corner then NE corner), wrapped in an outer list so a
+        single subscription can carry multiple boxes.
+        """
+        return [[[self.lamin, self.lomin], [self.lamax, self.lomax]]]
+
+    def contains(self, lat: float, lon: float) -> bool:
+        """True if ``(lat, lon)`` falls inside this box (inclusive)."""
+        return self.lamin <= lat <= self.lamax and self.lomin <= lon <= self.lomax
+
 
 def compute_bounding_box(
     home_lat: float, home_lon: float, radius_miles: float
