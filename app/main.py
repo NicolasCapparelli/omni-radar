@@ -28,8 +28,11 @@ from .metrics import METRICS
 from .models import AircraftPayload, VesselPayload
 from .opensky import OpenSkyClient, OpenSkyError
 
+# Honor LOG_LEVEL for the app's own loggers too (uvicorn gets it in run()).
+# Unknown names (e.g. uvicorn's "trace") fall back to INFO.
+_log_level = getattr(logging, get_settings().log_level.upper(), logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=_log_level if isinstance(_log_level, int) else logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("traffic_radar")
