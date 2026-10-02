@@ -1,7 +1,7 @@
 """Tiny static server + API proxy for the Omni-Radar web console.
 
-Serves the static UI from this directory and reverse-proxies ``/api/*`` and
-``/health`` to the middleware, so the browser talks to a single origin and we
+Serves the static UI from this directory and reverse-proxies ``/api/*`` (GET
+and POST) and ``/health`` to the middleware, so the browser talks to a single origin and we
 need no CORS changes on the API itself.
 
 Usage:
@@ -37,10 +37,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
-    def _proxy(self) -> None:
+    def do_POST(self) -> None:  # noqa: N802
+        # e.g. POST /api/marine/{channel} (re-point a channel).
+        if self.path.startswith("/api"):
+            self._proxy(method="POST")
+        else:
+            self.send_error(405)
+
+    def _proxy(self, method: str = "GET") -> None:
         url = self.api_base.rstrip("/") + self.path
+        data = None
+        if method == "POST":
+            length = int(self.headers.get("Content-Length") or 0)
+            data = self.rfile.read(length) if length else b""
+        req = urllib.request.Request(url, data=data, method=method)
+        if data and self.headers.get("Content-Type"):
+            req.add_header("Content-Type", self.headers["Content-Type"])
         try:
-            with urllib.request.urlopen(url, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 body = resp.read()
                 self.send_response(resp.status)
                 self.send_header(
