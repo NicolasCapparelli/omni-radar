@@ -84,6 +84,7 @@ async function scanAir() {
   setConn("busy", "Scanning…");
   try {
     const { aircraft, recommendedPoll, query } = await getNearby({ lat, lon, radius });
+    if (state.mode !== "AIR") return;  // MODE was toggled while this was in flight
     $("requestUrl").textContent = `GET /api/nearby?${query}`;
     if (recommendedPoll) state.recommendedPoll = recommendedPoll;
 
@@ -92,6 +93,7 @@ async function scanAir() {
     $("statUpdated").textContent = new Date().toLocaleTimeString();
     setConn("ok", `${aircraft.length} targets`);
   } catch (err) {
+    if (state.mode !== "AIR") return;
     setConn("err", "Error");
     $("statUpdated").textContent = "failed";
     console.error(err);
@@ -118,6 +120,7 @@ async function scanMarine(isWarmupRetry = false) {
     const { vessels, recommendedPoll, query } = await getMarineNearby({
       channel, lat, lon, radius,
     });
+    if (state.mode !== "MARINE") return;  // MODE was toggled while this was in flight
     $("requestUrl").textContent = `GET ${query}`;
     if (recommendedPoll) state.recommendedPoll = recommendedPoll;
 
@@ -140,6 +143,7 @@ async function scanMarine(isWarmupRetry = false) {
       }
     }
   } catch (err) {
+    if (state.mode !== "MARINE") return;
     setConn("err", "Error");
     $("statUpdated").textContent = "failed";
     console.error(err);
