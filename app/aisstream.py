@@ -38,6 +38,18 @@ _BACKOFF_START_S = 2.0
 _BACKOFF_MAX_S = 60.0
 
 
+def _available(value, limit: float) -> Optional[float]:
+    """Return ``value``, or ``None`` for AIS's "not available" sentinels.
+
+    AIS encodes missing fields as out-of-range values (ITU-R M.1371): latitude
+    91, longitude 181, SOG 102.3 kn and COG 360. ``limit`` is the first
+    sentinel value; anything at or beyond it in magnitude is unavailable.
+    """
+    if not isinstance(value, (int, float)) or abs(value) >= limit:
+        return None
+    return value
+
+
 def _format_eta(eta: Optional[dict]) -> str:
     """Format an AIS ETA object ({Month,Day,Hour,Minute}) as 'MM-DD HH:MM'."""
     if not isinstance(eta, dict):
@@ -130,10 +142,10 @@ class AisStreamClient:
         if msg_type in POSITION_TYPES:
             await self._store.update_position(
                 mmsi=int(mmsi),
-                latitude=body.get("Latitude"),
-                longitude=body.get("Longitude"),
-                sog_knots=body.get("Sog"),
-                cog_degrees=body.get("Cog"),
+                latitude=_available(body.get("Latitude"), 91),
+                longitude=_available(body.get("Longitude"), 181),
+                sog_knots=_available(body.get("Sog"), 102.3),
+                cog_degrees=_available(body.get("Cog"), 360),
                 true_heading=body.get("TrueHeading"),
                 nav_status=body.get("NavigationalStatus"),
                 name=meta_name,
