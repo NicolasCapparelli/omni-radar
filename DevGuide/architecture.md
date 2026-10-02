@@ -38,8 +38,8 @@ lookups cost nothing.
 
 ### 1. Radius → bounding box (`geo.py`)
 The hardware sends a home coordinate + radius (miles). We convert that to the
-lat/lon bounding box OpenSky needs, using mid-latitude approximations
-(69 mi per ° latitude, 53 mi per ° longitude). Keeping the box small also keeps
+lat/lon bounding box OpenSky needs, using flat-earth approximations
+(69 mi per ° latitude, 69·cos(latitude) mi per ° longitude). Keeping the box small also keeps
 the OpenSky credit cost at the minimum (1 credit per call).
 
 ### 2. One bulk OpenSky call (`opensky.py`)

@@ -16,7 +16,7 @@ hard (and persisted to disk) since they're static for a flight's life.
 | Module | Responsibility |
 | --- | --- |
 | `app/main.py` | FastAPI app, `GET /api/nearby`, background GC loop |
-| `app/geo.py` | Radius → bounding box (69 mi/° lat, 53 mi/° lon) |
+| `app/geo.py` | Radius → bounding box (69 mi/° lat, 69·cos(lat) mi/° lon) |
 | `app/opensky.py` | OAuth2 token mgmt + `/states/all` fetch |
 | `app/adsbdb.py` | adsbdb.com route provider (primary, free) |
 | `app/flightaware.py` | AeroAPI route provider (optional fallback) |

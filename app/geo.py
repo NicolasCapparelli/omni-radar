@@ -1,17 +1,20 @@
 """Bounding-box geometry for converting a home coordinate + radius into the
 fractional lat/lon box that OpenSky's ``/states/all`` endpoint expects.
 
-Spatial approximations come straight from the middleware spec (mid-latitude):
+Spatial approximations (flat-earth, fine at radar-sized radii):
     1 degree of latitude  ~= 69.0 miles
-    1 degree of longitude ~= 53.0 miles
+    1 degree of longitude ~= 69.0 * cos(latitude) miles
+(the spec's fixed 53.0 mi/deg longitude is this value at ~40 deg N).
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 MILES_PER_DEG_LAT = 69.0
-MILES_PER_DEG_LON = 53.0
+# Floor for cos(latitude) so the longitude span stays finite near the poles.
+_MIN_COS_LAT = 0.01
 
 
 @dataclass(frozen=True)
@@ -46,15 +49,17 @@ def compute_bounding_box(
 ) -> BoundingBox:
     """Convert a home coordinate and radius (miles) into a lat/lon bounding box.
 
-    Mirrors the spec's reference formula:
+    Uses:
         latOffset = radiusMiles / 69.0
-        lonOffset = radiusMiles / 53.0
+        lonOffset = radiusMiles / (69.0 * cos(homeLat))
+    so the box covers the radius east-west at any latitude, not just ~40 deg N.
     """
     if radius_miles <= 0:
         raise ValueError("radius_miles must be positive")
 
     lat_offset = radius_miles / MILES_PER_DEG_LAT
-    lon_offset = radius_miles / MILES_PER_DEG_LON
+    cos_lat = max(_MIN_COS_LAT, math.cos(math.radians(home_lat)))
+    lon_offset = radius_miles / (MILES_PER_DEG_LAT * cos_lat)
 
     # Clamp to valid WGS-84 ranges so we never hand OpenSky an out-of-range box.
     lamin = max(-90.0, home_lat - lat_offset)
