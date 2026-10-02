@@ -101,7 +101,13 @@ class FlightAwareClient:
             METRICS.incr("flightaware.errors")
             raise RouteUnavailable(f"AeroAPI {resp.status_code} for {ident}")
 
-        flight = _pick_active_flight(resp.json().get("flights", []))
+        try:
+            body = resp.json()
+        except ValueError as exc:
+            METRICS.incr("flightaware.errors")
+            raise RouteUnavailable(f"AeroAPI returned invalid JSON for {ident}") from exc
+        flights = body.get("flights") if isinstance(body, dict) else None
+        flight = _pick_active_flight(flights if isinstance(flights, list) else [])
         if flight is None:
             METRICS.incr("flightaware.notfound")
             return None

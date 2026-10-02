@@ -88,7 +88,12 @@ class AdsbdbClient:
             METRICS.incr("adsbdb.errors")
             raise RouteUnavailable(f"adsbdb {resp.status_code} for {ident}")
 
-        response = resp.json().get("response")
+        try:
+            body = resp.json()
+        except ValueError as exc:
+            METRICS.incr("adsbdb.errors")
+            raise RouteUnavailable(f"adsbdb returned invalid JSON for {ident}") from exc
+        response = body.get("response") if isinstance(body, dict) else None
         if not isinstance(response, dict):
             METRICS.incr("adsbdb.notfound")
             return None

@@ -210,9 +210,10 @@ class OpenSkyClient:
             resp = await self._client.get(
                 f"{API_BASE}/states/all", params=params, headers=headers
             )
-        except httpx.HTTPError as exc:
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            # KeyError/ValueError: a malformed OAuth2 token response.
             METRICS.incr("opensky.errors")
-            raise OpenSkyError(f"OpenSky request failed: {exc}") from exc
+            raise OpenSkyError(f"OpenSky request failed: {exc!r}") from exc
 
         # Capture credit balance from the rate-limit headers when present.
         remaining = resp.headers.get("X-Rate-Limit-Remaining")
@@ -235,8 +236,12 @@ class OpenSkyClient:
             METRICS.incr("opensky.errors")
             raise OpenSkyError(f"OpenSky returned HTTP {resp.status_code}")
 
-        payload = resp.json()
-        raw_states = payload.get("states") or []
+        try:
+            payload = resp.json()
+        except ValueError as exc:
+            METRICS.incr("opensky.errors")
+            raise OpenSkyError("OpenSky returned invalid JSON") from exc
+        raw_states = (payload.get("states") if isinstance(payload, dict) else None) or []
         vectors = [StateVector.from_array(s) for s in raw_states]
         # Drop entries without a usable position or callsign.
         return [
