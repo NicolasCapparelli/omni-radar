@@ -163,11 +163,20 @@ SPECIAL_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"(NEWS|CHOPPER|SKY\d+)", re.IGNORECASE), "News"),
 ]
 
-# Known military ICAO24 hex block prefixes (lower-case). Extend as needed.
-MILITARY_ICAO24_PREFIXES: tuple[str, ...] = (
-    "adf",  # portion of the US military allocation
-    "ae",   # US military block
+# Known military ICAO24 address ranges (inclusive, as ints). Extend as needed.
+# The US block is A00000-AFFFFF: civil N-numbers run A00001 (N1) through
+# ADF7C7 (N99999), and everything above that is the US military allocation.
+MILITARY_ICAO24_RANGES: tuple[tuple[int, int], ...] = (
+    (0xADF7C8, 0xAFFFFF),  # US military
 )
+
+
+def _is_military_icao24(icao24: str) -> bool:
+    try:
+        addr = int(icao24, 16)
+    except ValueError:
+        return False
+    return any(lo <= addr <= hi for lo, hi in MILITARY_ICAO24_RANGES)
 
 
 def _callsign_prefix(callsign: str) -> str:
@@ -192,7 +201,7 @@ def special_designation(callsign: str, icao24: str = "") -> str:
     """Classify a special operator ('Military', 'Police', 'Cargo', ...).
 
     Returns ``"None"`` when no special designation applies. Resolution order:
-    callsign prefix -> callsign regex patterns -> ICAO24 hex block prefix.
+    callsign prefix -> callsign regex patterns -> ICAO24 military address range.
     """
     callsign = (callsign or "").strip()
 
@@ -204,8 +213,8 @@ def special_designation(callsign: str, icao24: str = "") -> str:
         if pattern.search(callsign):
             return flag
 
-    icao = (icao24 or "").strip().lower()
-    if icao and any(icao.startswith(p) for p in MILITARY_ICAO24_PREFIXES):
+    icao = (icao24 or "").strip()
+    if icao and _is_military_icao24(icao):
         return "Military"
 
     return "None"
