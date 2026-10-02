@@ -52,6 +52,23 @@ export async function scan() {
   return state.mode === "MARINE" ? scanMarine() : scanAir();
 }
 
+// Stable identity of a target across refreshes (index positions are not).
+const targetKey = (t) => (state.mode === "MARINE" ? t.mmsi : t.callsign);
+
+// Swap in a fresh target list, keeping the same target selected if it is
+// still in range (so a refresh doesn't break a manual lock or restart the
+// auto-cycle from the top). Falls back to the first target.
+function replaceTargets(targets) {
+  const prev = state.aircraft[state.selected];
+  const prevKey = prev ? targetKey(prev) : null;
+  state.aircraft = targets;
+  renderTable(onRowSelect);
+  if (!targets.length) { select(-1); return; }
+  const i = prevKey == null ? -1 : targets.findIndex((t) => targetKey(t) === prevKey);
+  select(i >= 0 ? i : 0);
+  if (state.trackMode === "auto") startScroll();
+}
+
 async function scanAir() {
   const lat = $("inLat").value.trim();
   const lon = $("inLon").value.trim();
@@ -70,18 +87,10 @@ async function scanAir() {
     $("requestUrl").textContent = `GET /api/nearby?${query}`;
     if (recommendedPoll) state.recommendedPoll = recommendedPoll;
 
-    state.aircraft = aircraft;
-    renderTable(onRowSelect);
+    replaceTargets(aircraft);
     $("statTracked").textContent = aircraft.length;
     $("statUpdated").textContent = new Date().toLocaleTimeString();
     setConn("ok", `${aircraft.length} targets`);
-
-    if (aircraft.length) {
-      select(0);
-      if (state.trackMode === "auto") startScroll();
-    } else {
-      select(-1);
-    }
   } catch (err) {
     setConn("err", "Error");
     $("statUpdated").textContent = "failed";
@@ -112,17 +121,13 @@ async function scanMarine(isWarmupRetry = false) {
     $("requestUrl").textContent = `GET ${query}`;
     if (recommendedPoll) state.recommendedPoll = recommendedPoll;
 
-    state.aircraft = vessels;  // generic "current targets" array
-    renderTable(onRowSelect);
+    replaceTargets(vessels);  // state.aircraft is the generic "current targets" array
     $("statTracked").textContent = vessels.length;
     $("statUpdated").textContent = new Date().toLocaleTimeString();
 
     if (vessels.length) {
       setConn("ok", `${vessels.length} vessels`);
-      select(0);
-      if (state.trackMode === "auto") startScroll();
     } else {
-      select(-1);
       setConn("ok", "channel warming up…");
       $("aircraftBody").innerHTML =
         `<tr class="empty-row"><td colspan="${COLSPAN}">Channel warming up — the AIS socket just opened. Vessels appear within a few seconds.</td></tr>`;

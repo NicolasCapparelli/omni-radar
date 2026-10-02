@@ -283,12 +283,20 @@ static bool fetchNearby() {
   http.end();
   if (err) { LOG("[poll] JSON error: %s", err.c_str()); return false; }
 
+  // Remember the selected target by callsign: list positions shift between
+  // polls, and a manual lock should stay on the same aircraft.
+  String prevCallsign = aircraftCount ? aircraft[selected].callsign : String();
+
   aircraftCount = 0;
   for (JsonObjectConst obj : doc.as<JsonArrayConst>()) {
     if (aircraftCount >= MAX_AIRCRAFT) break;
     copyAircraft(obj, aircraft[aircraftCount++]);
   }
-  if (selected >= (int)aircraftCount) selected = 0;
+  int found = -1;
+  for (size_t i = 0; prevCallsign.length() && i < aircraftCount; i++)
+    if (aircraft[i].callsign == prevCallsign) { found = (int)i; break; }
+  if (found >= 0) selected = found;
+  else if (selected >= (int)aircraftCount) selected = 0;
   int withCountry = 0;
   for (size_t i = 0; i < aircraftCount; i++)
     if (aircraft[i].originCountry.length() || aircraft[i].destCountry.length()) withCountry++;
