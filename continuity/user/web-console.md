@@ -1,5 +1,7 @@
 # Omni-Radar Web Console
 
+> *Migrated into Continuity on 2026-10-02 from `web/README.md`; original text unchanged apart from link repair and this note. MODE is no longer cosmetic: it switches the console between AIR and MARINE scans. Differences from current code: [status → Documentation drift](../status.md#documentation-drift).*
+
 A standalone developer console for the Local Traffic Radar middleware, plus a
 faithful emulator of the 2.8" ESP32 hardware screen. It is fully decoupled from
 the API (`app/`) — it only talks to the middleware over HTTP.
@@ -59,4 +61,4 @@ python serve.py --port 8080 --api http://192.168.1.50:8000
 - `styles.css` — cream/gold chrome + dark green-phosphor LCD theme
 - `serve.py` — static server + API proxy (stdlib only, no dependencies)
 
-See [DevGuide/web-console.md](../DevGuide/web-console.md) for the architecture.
+See [developer/web-console.md](../developer/web-console.md) for the architecture.

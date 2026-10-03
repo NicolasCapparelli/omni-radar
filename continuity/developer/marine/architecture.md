@@ -1,6 +1,8 @@
 # Architecture: How the Marine Middleware Works
 
-This is the marine counterpart to the AIR [architecture.md](../architecture.md).
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/MARINE/architecture.md`; original text unchanged apart from link repair and this note. It was written as a pre-implementation design, so check details against `app/` (known mismatches: the repoint endpoint takes query parameters, not a JSON body, and a channel box is fixed by the opening request). The "proposed" tables describe the design, not necessarily the final code. Differences from current code: [status → Documentation drift](../../status.md#documentation-drift).*
+
+This is the marine counterpart to the AIR [architecture.md](../air-architecture.md).
 It describes how vessel tracking works end-to-end and — like AIR — how almost
 all the work is done **locally** so external usage stays tiny. For the raw
 limits and terms of each external source, see

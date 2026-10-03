@@ -1,5 +1,7 @@
 # External Dependencies
 
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/external-dependencies.md`; original text unchanged apart from link repair and this note. Differences from current code: [status → Documentation drift](../status.md#documentation-drift).*
+
 This document tracks every external service and data source the Omni-Radar
 middleware relies on — their authentication, limits/costs, the role they play,
 and how we mitigate cost and rate limits. Keep it current when dependencies

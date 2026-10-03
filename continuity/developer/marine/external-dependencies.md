@@ -1,5 +1,7 @@
 # Marine External Dependencies
 
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/MARINE/external-dependencies.md`; original text unchanged apart from link repair and this note. The `MARINE_FALLBACK_*` keys and the paid fallback are a proposal and are not implemented; the aisstream terms-of-use TODO remains open. Differences from current code: [status → Documentation drift](../../status.md#documentation-drift).*
+
 The marine counterpart to the AIR
 [external-dependencies.md](../external-dependencies.md). Tracks every external
 service / data source the marine side relies on — auth, limits/costs, role, and

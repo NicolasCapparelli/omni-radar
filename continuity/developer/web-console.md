@@ -1,12 +1,14 @@
 # Web Console Architecture
 
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/web-console.md`; original text unchanged apart from link repair and this note. It predates marine support in the console (see `console.js` `scanMarine`). Differences from current code: [status → Documentation drift](../status.md#documentation-drift).*
+
 The web console (`web/`) is a dependency-free, no-build static app: native ES
 modules + HTML partials served by a tiny stdlib Python proxy (`serve.py`). It
 exists for development/debugging — to exercise the middleware API and preview
 how each aircraft renders on the 320×240 hardware LCD.
 
 > Run: start the API (`python -m app.main`), then `python serve.py` from `web/`,
-> and open http://localhost:8080. See [web/README.md](../web/README.md).
+> and open http://localhost:8080. See [user/web-console.md](../user/web-console.md).
 
 ## Layout
 

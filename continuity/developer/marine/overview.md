@@ -1,5 +1,7 @@
 # MARINE DevGuide
 
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/MARINE/README.md`; original text unchanged apart from link repair and this note. The "Status: design / planning" line below is historical (written before implementation); marine is implemented in `app/`. Differences from current code: [status → Documentation drift](../../status.md#documentation-drift).*
+
 Internal developer documentation for the **marine** half of Omni-Radar — live
 vessel tracking via AIS, mirroring the aircraft ("AIR") implementation as
 closely as possible while keeping a **hard external cutoff** between the two.
@@ -59,6 +61,6 @@ section of [architecture.md](architecture.md).
 ## Relationship to the AIR DevGuide
 
 This folder is the marine counterpart to the top-level DevGuide
-([../architecture.md](../architecture.md),
+([../air-architecture.md](../air-architecture.md),
 [../external-dependencies.md](../external-dependencies.md)). Read the AIR docs
 first if you haven't — the marine design is deliberately a parallel of it.

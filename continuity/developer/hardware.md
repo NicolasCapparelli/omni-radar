@@ -1,5 +1,7 @@
 # Omni-Radar Hardware Firmware
 
+> *Migrated into Continuity on 2026-10-02 from `hardware/README.md`; original text unchanged apart from link repair and this note. Its status table and touch-bus note are stale (radar view, touch buttons, and SET settings are implemented; touch shares the display SPI bus). Paths such as `include/` are relative to `hardware/`. Differences from current code: [status → Documentation drift](../status.md#documentation-drift).*
+
 Firmware for the physical Omni-Radar device — an **ESP32-3248S035** (Hosyond /
 Sunton 3.5" board): ESP32-WROOM + 480×320 **ST7796** SPI TFT + XPT2046 resistive
 touch, micro-USB. It polls the middleware's `GET /api/nearby` over WiFi and shows

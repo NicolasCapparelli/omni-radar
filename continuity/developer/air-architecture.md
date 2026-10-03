@@ -1,5 +1,7 @@
 # Architecture: How the Middleware Works
 
+> *Migrated into Continuity on 2026-10-02 from `DevGuide/architecture.md`; original text unchanged apart from link repair and this note. Differences from current code: [status → Documentation drift](../status.md#documentation-drift).*
+
 This is a medium/high-level tour of the Omni-Radar middleware — what it does on
 each request, and (the heart of the design) all the work it does **locally** so
 that external API usage stays tiny. For the raw limits and costs of each

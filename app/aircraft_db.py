@@ -9,7 +9,7 @@ Helicopter detection uses the ICAO Doc 8643 description code (column
 this is far more reliable than OpenSky's broadcast ``category``, which many
 transponders leave unset.
 
-Download the CSV once (see ``scripts/download_aircraft_db.py`` or the README),
+Download the CSV once (see ``scripts/download_aircraft_db.py`` or continuity/user/api.md),
 or let the server auto-download it on startup when missing/stale. Point
 ``AIRCRAFT_DB_PATH`` at it. If the file is absent, lookups return ``None``/
 ``False`` and the rest of the pipeline degrades gracefully.
