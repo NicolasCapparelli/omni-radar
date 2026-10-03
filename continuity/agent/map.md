@@ -72,7 +72,7 @@ The map has 11 capability routes and 7 shared foundations. Every source path bel
 - **Vocabulary:** add an airline, ICAO designator, callsign prefix, cargo operator, military, police, news, medical, operator class, special designation, AIS ship type, nav status, MID, flag country.
 - **Boundary:** pure data plus small functions. Changes here alter classification and filters elsewhere.
 - **Source starts:**
-  - AIR: `app/static_data.py` `AIRLINE_BY_ICAO`, `SPECIAL_BY_CALLSIGN_PREFIX`, `SPECIAL_PATTERNS`, `MILITARY_ICAO24_PREFIXES`, `operator_class`
+  - AIR: `app/static_data.py` `AIRLINE_BY_ICAO`, `SPECIAL_BY_CALLSIGN_PREFIX`, `SPECIAL_PATTERNS`, `MILITARY_ICAO24_RANGES`, `operator_class`
   - Marine: `app/marine_static_data.py` `NAV_STATUS`, `STATIONARY_NAV_STATUS`, `vessel_category`, `_CATEGORY_OPERATOR_CLASS`, `_MID_TO_ISO`, `country_from_mmsi`
 - **Cross-effects:**
   - An airline-table entry makes the flight `Commercial` and is preferred as the `airline` name.
@@ -115,7 +115,7 @@ The map has 11 capability routes and 7 shared foundations. Every source path bel
   - Rendering: `web/js/device.js` (`renderAircraftCard`, `renderVesselCard`, `renderRadar`), `web/js/table.js` (`rowHtml`, `vesselRowHtml`, `COLSPAN`), `web/js/usage.js` (`renderMetrics`)
   - Markup: `web/partials/console.html`
   - Styling: `web/styles.css`. LCD visual changes must be mirrored in the firmware; see [Device firmware](#device-firmware).
-  - Proxy: `web/serve.py` (`Handler._proxy`, GET only)
+  - Proxy: `web/serve.py` (`Handler._proxy`; GET and POST under `/api`)
 - **Detail:** [developer/web-console.md](../developer/web-console.md#extending) covers module boundaries and how to extend them (it predates marine support); [user/web-console.md](../user/web-console.md) covers using the console.
 - **Verify:** `node --check` on changed modules, then a manual run.
 - **Depends on:** [Payload contract](#payload-contract), [Metrics and adaptive polling](#metrics-and-adaptive-polling).
@@ -147,7 +147,7 @@ The middleware reads `app/config.py` `Settings`, with `.env.example` as its temp
 
 ### Geo and bounding boxes
 
-`app/geo.py` `BoundingBox`, `compute_bounding_box`, `as_aisstream_bbox`, `contains`. This uses a fixed 53 mi per degree of longitude. The radar renderers (`web/js/format.js` `relativePosition`, firmware `drawRadar`) use `cos(lat)` instead. Investigate here for "targets outside the radius" or "radar distance mismatch".
+`app/geo.py` `BoundingBox`, `compute_bounding_box`, `as_aisstream_bbox`, `contains`. The longitude span is scaled by `cos(latitude)` (floored at 0.01 near the poles), matching the radar renderers (`web/js/format.js` `relativePosition`, firmware `drawRadar`). Investigate here for "targets outside the radius" or "radar distance mismatch".
 
 ### Metrics and adaptive polling
 

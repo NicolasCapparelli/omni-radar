@@ -27,6 +27,7 @@ On this machine, PlatformIO is installed at `~/.platformio/penv/Scripts/pio.exe`
   - FlightAware is enabled only when its key is non-empty.
   - Marine requires `AISSTREAM_ENABLED=true` **and** a key. Without both, the `/api/marine/*` endpoints return 503.
 - **Paths are relative to the working directory:** `CACHE_PERSIST_PATH=data/route_cache.json` and `AIRCRAFT_DB_PATH=data/aircraftDatabase.csv`. Both files are gitignored.
+- **Log level:** `LOG_LEVEL` (default `info`) sets both uvicorn and the app's own loggers; unknown names fall back to INFO (`app/main.py`).
 - **Aircraft DB auto-download:** at startup the server re-downloads the roughly 95 MB CSV if it is missing or older than `AIRCRAFT_DB_MAX_AGE_DAYS` (30 by default). Set `AIRCRAFT_DB_AUTO_DOWNLOAD=false` to disable this.
 
 The `MARINE_FALLBACK_*` keys shown in [developer/marine/external-dependencies.md](marine/external-dependencies.md#configuration-proposed-env-keys) are a **proposal**. `Settings` does not read them, and `extra="ignore"` silently drops them.
@@ -73,7 +74,7 @@ All middleware commands run from the **repository root** in PowerShell.
    python serve.py                      # http://localhost:8080, proxies /api/* and /health -> :8000
    python serve.py --port 8080 --api http://192.168.1.50:8000
    ```
-   `serve.py` reads the `PORT` and `MIDDLEWARE_URL` environment variables as defaults. It proxies **GET only**.
+   `serve.py` reads the `PORT` and `MIDDLEWARE_URL` environment variables as defaults. It proxies GET and POST requests under `/api` (and GET `/health`).
 5. Build and flash the firmware from `hardware/` (documented):
    ```powershell
    cd hardware
@@ -119,4 +120,3 @@ For payload changes, also check every consumer listed in [Data model → Change 
 | Device: WiFi connects, but no data | `MIDDLEWARE_BASE_URL` is `localhost` or a wrong IP, or a firewall blocks it | Use the PC's LAN IP. Test `http://<PC-IP>:8000/api/nearby?radius=15` in a browser. |
 | Device: white or blank screen; inverted or mirrored colors | Pin map or driver mismatch (ST7796 vs ILI9488), or rotation | See [developer/hardware.md → Troubleshooting](hardware.md#troubleshooting) |
 | Device: taps land in the wrong place | Touch calibration | Read the serial `[touch] raw=` logs and tune `TS_RAW_*` in [board_pins.h](../../hardware/include/board_pins.h) |
-| Console POST repoint (`POST /api/marine/{channel}`) fails through `:8080` | `serve.py` implements only `do_GET` | Call the middleware on `:8000` directly |

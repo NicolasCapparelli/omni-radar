@@ -26,7 +26,7 @@ There are no validators or migrations beyond pydantic response models, `Query`/`
 
 ### AircraftPayload
 
-- **Identity:** there is no stable ID in the payload. `callsign` identifies a flight and is the route-cache key. The ICAO24 address is used internally but **not exposed**. Each response is a fresh list. Clients select targets by array index, so selection can shift between polls.
+- **Identity:** there is no stable ID in the payload. `callsign` identifies a flight and is the route-cache key. The ICAO24 address is used internally but **not exposed**. Each response is a fresh list. The array order changes between polls, so clients re-find their selected target by `callsign` (AIR) or `mmsi` (MARINE) after each refresh (`web/js/console.js` `replaceTargets`, firmware `fetchNearby`), and fall back to the first target if it left range.
 - **Lifecycle:** built per request. An aircraft appears only if OpenSky returned it with a callsign and position, inside the box, and it survived the plane filter. The **box is a rectangle, not a circle**, so corners reach about 1.4× the radius.
 
 ### Route cache entry (FlightMeta)
@@ -64,7 +64,7 @@ The conversions live in `StateVector` in [opensky.py](../../app/opensky.py):
 
 The plane speed gate compares raw m/s against `PLANE_MIN_SPEED_MPH × 0.44704`.
 
-**Geo:** the AIR and MARINE boxes use 69 mi per degree of latitude and a **fixed** 53 mi per degree of longitude, clamped to valid lat/lon ranges. Boxes crossing the antimeridian are not handled.
+**Geo:** the AIR and MARINE boxes use 69 mi per degree of latitude and `69 × cos(latitude)` mi per degree of longitude (cosine floored at 0.01), clamped to valid lat/lon ranges. Boxes crossing the antimeridian are not handled.
 
 ### Absence semantics
 
@@ -78,7 +78,7 @@ Absent values become sentinels, not nulls. Consumers must treat these as "unknow
 | `"Unknown Route"` | `origin_name`, `destination_name` |
 | `""` | `origin_country`, `destination_country`, `squawk`, vessel `callsign`, `eta`, `country_iso` |
 | `"None"` (string) | `emergency`, `special_designation` |
-| `0` | Ambiguous: a null altitude, speed, vertical rate, or heading becomes `0`, which looks the same as a real zero. Vessel `heading_degrees` ≥ 360 (AIS 511 = not available) also becomes `0`. |
+| `0` | Ambiguous: a null altitude, speed, vertical rate, or heading becomes `0`, which looks the same as a real zero. Vessel `heading_degrees` ≥ 360 (AIS 511 = not available) also becomes `0`. On ingest, the AIS "not available" sentinels for latitude (91), longitude (181), speed (102.3 kn), and course (360) are dropped, so they never overwrite a stored value (`aisstream._available`). |
 | `null` | Only `latitude` and `longitude`, and never null for AIR because vectors without a position are dropped |
 
 ### Precedence and derived values
@@ -96,7 +96,7 @@ Absent values become sentinels, not nulls. Consumers must treat these as "unknow
   5. Otherwise → Unknown.
 
   Adding a designator to `AIRLINE_BY_ICAO` therefore also makes its flights Commercial.
-- **`special_designation`:** callsign prefix table, then regex patterns (for example `N\d+PD` → Police), then military ICAO24 blocks (`ae`, `adf`).
+- **`special_designation`:** callsign prefix table, then regex patterns (for example `N\d+PD` → Police), then the military ICAO24 address range `ADF7C8`–`AFFFFF` (`MILITARY_ICAO24_RANGES`; the US civil block ends at `ADF7C7`).
 - **`vehicle_type`:** DB Doc 8643 class H/G/T/S/A beats the OpenSky category, which beats the default `Plane`. Without the DB, rotorcraft that do not broadcast category 8 are labelled `Plane` and become subject to the speed filter.
 - **AIR `country`:** OpenSky's `origin_country`, which is the ICAO24 registration country. It is a country *name*, not ISO.
 - **Vessel `country` and `country_iso`:** from the MMSI's first three digits (MID).

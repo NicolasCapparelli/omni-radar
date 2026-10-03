@@ -2,6 +2,8 @@
 
 ## Current state
 
+Upstream commits `e03563b`..`2f1a246` (2026-10-02, pushed by another contributor) landed before this documentation was pushed. They changed the AIR bounding box to scale longitude by `cos(latitude)`, made `serve.py` proxy POST, ignored AIS "not available" values, switched the military ICAO24 check to the range `ADF7C8`–`AFFFFF`, kept the selected target across refreshes (console and firmware), dropped console scans that finish after a MODE toggle, treated malformed upstream JSON as transient, and applied `LOG_LEVEL` to app loggers. The Continuity docs were updated to match by reading the diffs. None of it was run.
+
 The code is at commit `3d6a6fc` ("V1 Release", 2026-07-22) on `master`. Before this initialization, the working tree had no source changes. Everything below comes from **reading the source**. No live run, device flash, or firmware compile happened in this session; see [Last verified state](#last-verified-state).
 
 | Area | State (from source) |
@@ -22,8 +24,7 @@ These were found by reading source and have not been reproduced at runtime.
 2. **FlightAware routes have no airport country.** `app/flightaware.py` never sets `origin_country` or `destination_country`, so those flights show no flags in the console or on the device for the 12-hour cache life.
 3. **`model_code` precedence differs from the docs.** A FlightAware `aircraft_type` overrides the offline DB typecode (`app/enrich.py` `_build_payload`), but the former root README (now [user/api.md](user/api.md)) says the DB wins. It is unknown which behavior is intended.
 4. **A marine channel ignores later changes of centre or radius.** The channel's box is fixed by the request that opened it, so later requests filter only the overlap and the returned `channel_box` goes unused. See [architecture → MARINE request flow](developer/architecture.md#marine-request-flow).
-5. **The console proxy can't repoint.** `web/serve.py` proxies GET only, so `POST /api/marine/{channel}` can't go through `:8080`.
-6. **Minor metric quirks.** The `marine.channels_active` gauge stays null until the first reaper pass (5 minutes), and `ais.ws_connected` is a single gauge shared by all channels.
+5. **Minor metric quirks.** The `marine.channels_active` gauge stays null until the first reaper pass (5 minutes), and `ais.ws_connected` is a single gauge shared by all channels.
 
 ### Documentation drift
 
@@ -72,6 +73,8 @@ The checks ran on **2026-10-02** against `3d6a6fc`, plus the untracked Continuit
 | Ad hoc smoke test of the pure functions (geo box, `StateVector` units, `classify_type`, `_should_drop_plane`, `operator_class`, `country_from_mmsi`, `vessel_category`, `recommended_poll_seconds`) | Passed. Outputs matched what the code says it should do. |
 | `node --check` on the 10 `web/js/*.js` modules | Passed |
 | Live middleware or console run, `pio run`, flash | **Not run**: no external calls wanted, it would trigger the DB download, and the firmware libraries aren't installed |
+
+After rebasing onto the upstream commits, `compileall`, `import app.main`, `node --check` on all modules, and a two-line smoke test (longitude span 0.574° at 40.758° N for 15 mi; `ADF7C7` not military, `ADF7C8` military) were rerun and passed. The rest of the table above was run before the rebase, against `3d6a6fc`.
 
 The documentation checks (links, anchors, source paths, three routing walkthroughs) passed after initialization and again after migration. See [initialization evidence](history/documentation/initialization.md) and [migration evidence](history/migration/migration.md).
 
