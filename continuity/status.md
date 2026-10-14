@@ -2,9 +2,9 @@
 
 ## Current state
 
-Upstream commits `e03563b`..`2f1a246` (2026-10-02, pushed by another contributor) landed before this documentation was pushed. They changed the AIR bounding box to scale longitude by `cos(latitude)`, made `serve.py` proxy POST, ignored AIS "not available" values, switched the military ICAO24 check to the range `ADF7C8`–`AFFFFF`, kept the selected target across refreshes (console and firmware), dropped console scans that finish after a MODE toggle, treated malformed upstream JSON as transient, and applied `LOG_LEVEL` to app loggers. The Continuity docs were updated to match by reading the diffs. None of it was run.
+Upstream commits `e03563b`..`2f1a246` (2026-10-02, pushed by another contributor) landed before this documentation was pushed. They changed the AIR bounding box to scale longitude by `cos(latitude)`, made `serve.py` proxy POST, ignored AIS "not available" values, switched the military ICAO24 check to the range `ADF7C8`–`AFFFFF`, kept the selected target across refreshes (console and firmware), dropped console scans that finish after a MODE toggle, treated malformed upstream JSON as transient, and applied `LOG_LEVEL` to app loggers. At the time, the Continuity docs were updated by reading the diffs without running that behavior; later scoped checks are recorded below.
 
-The code is at commit `3d6a6fc` ("V1 Release", 2026-07-22) on `master`. Before this initialization, the working tree had no source changes. Everything below comes from **reading the source**. No live run, device flash, or firmware compile happened in this session; see [Last verified state](#last-verified-state).
+The inspected HEAD on 2026-10-14 is `26dacfb` ("Sync Continuity docs with upstream behavior changes") on `master`; the working tree was clean before the GitHub documentation review. The table and defects below describe source behavior. Current isolated runtime verification is recorded in [Last verified state](#last-verified-state); live providers and firmware remain unverified.
 
 | Area | State (from source) |
 | --- | --- |
@@ -38,10 +38,10 @@ The former `DevGuide/` and README documents were migrated into `continuity/` wit
 
 ## Active work and last stopping point
 
-- **Product work:** nothing is in progress. The last commit, "V1 Release", added MARINE to the middleware and console, plus the first firmware. Git history doesn't show where the owner meant to go next. The firmware header and hardware README describe MARINE as "next", but nobody has confirmed that as the next task.
+- **Product work:** nothing is in progress. The "V1 Release" product commit added MARINE to the middleware and console, plus the first firmware. Git history doesn't show where the owner meant to go next. The firmware header and hardware README describe MARINE as "next", but nobody has confirmed that as the next task.
 - **This session (2026-10-02):** Continuity was initialized. Its eight documents are filled in, root `AGENTS.md` and `CLAUDE.md` now point here, and the checks and routing walkthroughs are done. Evidence is in [history/documentation/initialization.md](history/documentation/initialization.md).
-- **Documentation migration (2026-10-02, owner chose full migration):** the former root README, `DevGuide/` (7 files), `web/README.md`, and `hardware/README.md` moved into `continuity/developer/` and `continuity/user/`, and the originals were removed. The root `README.md` is now a short landing page, which is the one required public entry point. Two source comments were repointed. Per-file record and recovery location: [history/migration/migration.md](history/migration/migration.md).
-- **Uncommitted:** nothing is committed. The new and changed files are untracked or modified in the working tree; the removed originals are recoverable from commit `3d6a6fc`.
+- **Documentation migration (2026-10-02, owner chose full migration):** the former root README, `DevGuide/` (7 files), `web/README.md`, and `hardware/README.md` moved into `continuity/developer/` and `continuity/user/`, and the originals were removed. At that point the root `README.md` became a short landing page, the required public entry point. Two source comments were repointed. Per-file record and recovery location: [history/migration/migration.md](history/migration/migration.md).
+- **GitHub documentation review (2026-10-14):** expanded the root README with source-backed features, architecture, safe setup, checks, and limitations; preserved detailed guides. Added two real console screenshots using synthetic data and capture notes. The initial review changed only documentation and screenshot assets. The owner subsequently authorized credential ignore rules, cleanup of any published credential files, and commit/push. A scoped audit of 153 reachable file versions across fetched/local refs found no credential-named paths, known local credential values, or high-confidence token matches; no tracked or published credential copy was found to remove. Root ignore rules now cover `.env.*` (except `.env.example`), `open_sky_credentials.json` at any depth inside this repository, and local firmware config. The credential JSON outside this repository is not covered by this repository's ignore rules and remains local. The authorized publication scope is documentation, screenshot assets, and ignore rules; no product task is active or established next task chosen.
 
 ## Next steps and context
 
@@ -64,6 +64,22 @@ No next product task has been chosen. Candidates that come from the evidence, in
 
 ## Last verified state
 
+Current review on **2026-10-14**, against source at `26dacfb` with documentation-only changes:
+
+| Check | Result |
+| --- | --- |
+| Existing Python 3.14.3 environment: `pip check`, `compileall -q app scripts web`, `import app.main` | Passed. pip warns about an invalid local `~ip` distribution; no broken requirements. Import exposes five `/api/*` routes. |
+| `node --check` on all ten web modules | Passed |
+| `web/serve.py --help`, `scripts/download_aircraft_db.py --help` | Passed |
+| Ad hoc isolated lifespan/API check | Passed: startup/shutdown, health, metrics, API docs, disabled-MARINE 503, invalid-radius 422, synthetic AIR endpoint and polling header; vessel-store merge and marine enrichment. Used `Settings(_env_file=None)`, blank provider keys, disabled download, and temporary DB/cache paths. |
+| Actual console static server and proxy over local HTTP | Passed: static page, GET health/nearby, POST forwarding, and polling-header forwarding against synthetic upstream responses. |
+| Codex browser preview | AIR and MARINE rendered with synthetic targets; two real screenshots saved under `docs/images/`. No live traffic or physical device was captured. See [capture notes](../docs/images/README.md). |
+| Fresh install, CSV download, live provider requests, firmware build/flash | Not run. Existing environment was reused; external integrations and board behavior are not established by synthetic checks. |
+
+Local Markdown destinations, anchors, and screenshot paths were checked after the documentation changes. Existing migrated guide drift is retained above. A filename suggesting credentials was found outside the Git repository at `../documentation/open_sky_credentials.json` (relative to the repository); contents were not opened or copied. `.env` and firmware local config remain excluded from documentation.
+
+### Earlier verification (2026-10-02)
+
 The checks ran on **2026-10-02** against `3d6a6fc`, plus the untracked Continuity documentation (`continuity/`, `AGENTS.md`, `CLAUDE.md`). No source files were changed.
 
 | Check | Result |
@@ -80,4 +96,4 @@ The documentation checks (links, anchors, source paths, three routing walkthroug
 
 ## Last meaningful update
 
-2026-10-02: Continuity initialized, then existing documentation fully migrated.
+2026-10-14: GitHub README expanded, synthetic console screenshots added, isolated checks rerun, and credential ignore rules verified after a scoped Git-history audit. Earlier Continuity initialization and migration remain recorded above.

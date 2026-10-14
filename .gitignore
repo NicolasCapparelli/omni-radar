@@ -1,5 +1,9 @@
-# Secrets
+# Local credentials and environment overrides (keep safe templates tracked)
 .env
+.env.*
+!.env.example
+open_sky_credentials.json
+/hardware/include/config.h
 
 # Python
 __pycache__/

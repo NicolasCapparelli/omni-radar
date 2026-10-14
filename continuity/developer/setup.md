@@ -1,6 +1,6 @@
 # Setup and verification
 
-Commands below are labelled **executed** (run during the 2026-10-02 Continuity initialization) or **documented** (taken from existing READMEs or derived from source, but not run in this session).
+The root [README](../../README.md#install-and-run) provides the newcomer quick start, including safe blank-key examples, direct venv-Python commands, and current limitations. Commands below retain their **executed** / **documented** labels from the 2026-10-02 Continuity initialization; these are historical labels, not claims of a fresh installation. The 2026-10-14 review reran syntax/import checks, dependency consistency, script help, isolated synthetic API checks, and local console/proxy checks; see [current verification](../status.md#last-verified-state). Fresh installation, external downloads/providers, and firmware builds were not run.
 
 ## Prerequisites
 
